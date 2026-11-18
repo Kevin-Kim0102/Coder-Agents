@@ -16,6 +16,8 @@ jobs:
         with:
           node-version: "22"
           cache: npm
+      - name: Install packaging test dependencies
+        run: python3 -m pip install "setuptools>=61" wheel
       - name: Python tests
         run: python3 -m unittest discover -s tests -v
       - name: DOM tests

@@ -93,6 +93,7 @@ python3 -m coder_agents serve
 ## 开发与测试
 
 ```bash
+python3 -m pip install "setuptools>=61" wheel   # 仅开发/打包测试需要，运行时仍零依赖
 python3 -m unittest discover -s tests -v   # 后端与 CLI 测试
 npm ci && npm test                          # DOM 测试（jsdom 为 devDependency）
 ```
