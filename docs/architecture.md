@@ -1,6 +1,19 @@
 # 产品架构与迁移说明
 
-## 架构
+## 产品方向
+
+Coder-Agents 的方向是通用的本地 CLI Agent 可视化面板：Python 标准库服务 + 浏览器页面 + 本机已安装的 CLI Agent。后续计划接入 Claude CLI 等其他 CLI。
+
+**现状：只接入了 Kiro CLI。** 目前没有 provider 抽象，面板没有选择后端的界面，代码里的 `scripts/kiro_*.py`、数据目录 `~/.local/state/kiro-panel/` 等命名都是 Kiro 专用的。下文“架构”描述的是当前真实的 Kiro 链路。
+
+## 未来方向（计划，均未实现）
+
+- 最小改动路径：先在 runner 一层引入后端接口（启动、续聊、事件流、模型目录各自一个实现），`run_kiro.py` 与 `kiro_acp*.py`、`kiro_catalog.py`、`kiro_usage.py` 归入 Kiro 实现；面板服务与 `viewer.html` 只依赖接口，再给任务和对话加一个后端字段与选择入口；每个任务已有独立的 `work/kiro-runs/<id>/` 目录，可沿用同一目录结构。
+- 新后端的事件格式、模型/强度、额度能力各不相同，面板需要按后端声明的能力显示相应控件。
+- 固定模型 `claude-sonnet-5.5` 是当前 Kiro runner 的默认值，不应套用到其他后端。
+- 数据目录名统一（去掉 `kiro-panel`）同样只是计划，需要带迁移步骤。
+
+## 当前架构（仅 Kiro）
 
 ```
 浏览器 ──HTTP(127.0.0.1:固定端口)──> scripts/watch_kiro.py（面板服务，Python 标准库）
@@ -26,7 +39,7 @@
 | `coder_agents/` | 新增：统一 CLI 与服务安装器，不改变上述模块的行为边界 |
 
 安全约束保持不变：只监听回环；浏览器只拿 HttpOnly cookie，token 不出现在页面；模型与强度由后端对照真实目录校验；
-自动清理由 `auto_cleanup_enabled` 控制且默认关闭；没有明确请求不会删除任何对话或日志。
+自动清理由 `auto_cleanup_enabled` 控制：`serve`/`service install` 新建的配置写入 `false`，但缺少该键的旧配置按开启处理；没有明确请求不会删除任何对话或日志。
 
 ## 数据位置
 
@@ -57,6 +70,9 @@
 ## 已知限制
 
 - 仅 Linux；服务安装依赖 systemd 用户实例。
-- 支持源码克隆、`pip install -e .` 和普通安装：wheel 内含 `coder_agents/_runtime/{scripts,assets,examples}`，源码树缺文件时构建失败；`MANIFEST.in` 保证 sdist 带齐这些文件，测试会从 sdist 解包构建 wheel 并运行 selfcheck。
-- 面板读取 Codex 私有状态文件 `~/.codex/.codex-global-state.json` 来列出 Codex 项目；文件缺失时只显示“其他对话”和已注册项目，不影响使用。
+- 面板只读读取 Codex 私有状态文件（非公开接口，格式可能变化） `~/.codex/.codex-global-state.json` 来列出 Codex 项目；文件缺失时只显示“其他对话”和已注册项目，不影响使用。
 - “其他对话”的日期目录沿用 `~/Documents/Codex/<日期>`（日期按香港时区），可用配置项 `daily_base` 修改。
+
+## 打包说明
+
+除源码克隆外，也支持 `pip install -e .` 和普通安装，但文档主路径是源码克隆。wheel 内含 `coder_agents/_runtime/{scripts,assets,examples}`，由 `setup.py` 在从 sdist 构建时打入，源码树缺文件时构建失败；`MANIFEST.in` 精确列出 sdist 内容（排除 work、缓存、个人配置）。安装后用 `python3 -m coder_agents selfcheck` 验证。
