@@ -1,0 +1,6 @@
+interface:
+  display_name: "Coder-Agents"
+  short_description: "Open the Coder-Agents panel and delegate coding to Kiro."
+  default_prompt: "Use $coder-agents to open the panel or delegate this coding task to Kiro."
+policy:
+  allow_implicit_invocation: false

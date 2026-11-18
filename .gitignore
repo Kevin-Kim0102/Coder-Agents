@@ -1,0 +1,41 @@
+# Local run output, logs and scratch (task logs, managed temp dirs, screenshots)
+/work/
+/tmp/
+*.log
+*.png.tmp
+screenshots/
+
+# Personal settings, credentials and tokens (never commit)
+settings.json
+!examples/settings.example.json
+config.json
+projects.json
+*.token
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials*
+.aws/
+.ssh/
+.kiro/
+
+# Agent tool directories
+.codex/
+.agents/
+
+# Build and cache
+node_modules/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+.npm/
+.DS_Store

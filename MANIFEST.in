@@ -1,0 +1,18 @@
+# sdist contents: exactly what is needed to build the wheel and read the docs.
+include README.md THIRD_PARTY_NOTICES.md pyproject.toml setup.py .env.example
+include scripts/*.py
+include assets/viewer.html
+include assets/vendor/*
+include examples/settings.example.json
+include docs/*.md
+recursive-include coder_agents *.py
+
+# Never ship run output, caches or personal configuration.
+prune work
+prune node_modules
+prune tests
+prune .github
+prune .kiro
+prune .codex
+prune .agents
+global-exclude __pycache__ *.py[cod] *.log settings.json config.json projects.json *.token *.pem *.key credentials* .env

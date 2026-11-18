@@ -1,0 +1,26 @@
+---
+name: coder-agents
+description: Open the local Coder-Agents panel and delegate coding tasks to Kiro CLI sessions. Optional Codex integration.
+---
+
+# Coder-Agents (optional Codex integration)
+
+Template. Replace `{{CODER_AGENTS_ROOT}}` with the absolute path of your Coder-Agents checkout when you install it
+(see `docs/codex-integration.md`). Do not commit the rendered file.
+
+## Commands
+
+All commands run as `PYTHONPATH={{CODER_AGENTS_ROOT}} python3 -m coder_agents <command>`.
+
+- `status`: read-only state of config, port, active tasks and service units.
+- `register --cwd /abs/project [--root /abs/project/work/kiro-runs]`: register a project with the running panel and print its URL.
+- `run --cwd /abs/project --agent-id ID --title TITLE < task.txt`: run one Kiro session. Add `--check` to test availability.
+- `stop`: close the panel's Python server. Tasks and history stay.
+
+## Rules
+
+- The default model and effort are pinned by the runner (`claude-sonnet-5.5`, `medium`). Do not pass `--model`/`--effort`
+  yourself and do not accept a fallback; only the user may choose another model in the panel.
+- Do not enable automatic conversation cleanup, delete conversations or run `kiro_temp.py cleanup` unless the user asks.
+- Do not install or switch the system service without an explicit user request. `service install` is a dry run unless `--apply` is given.
+- Give each Kiro session a distinct `--agent-id`, a clear scope and a test command. Review the actual diff before accepting.

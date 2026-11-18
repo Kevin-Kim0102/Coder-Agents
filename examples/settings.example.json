@@ -1,0 +1,7 @@
+{
+  "proxy_defaults": {},
+  "temp": {
+    "min_free_mb": 512,
+    "pytest_basetemp": false
+  }
+}

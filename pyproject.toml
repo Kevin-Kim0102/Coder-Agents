@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "coder-agents"
+version = "0.1.0"
+description = "Local browser panel for Kiro CLI coding sessions (Linux)."
+requires-python = ">=3.9"
+readme = "README.md"
+# License intentionally unset: the author has not chosen one yet. See docs/licensing.md.
+dependencies = []
+
+[project.scripts]
+coder-agents = "coder_agents.cli:main"
+
+[tool.setuptools]
+packages = ["coder_agents"]
+# scripts/ and assets/ are added to the wheel by setup.py (coder_agents/_runtime/).
