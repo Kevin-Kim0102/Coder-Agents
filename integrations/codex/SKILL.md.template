@@ -1,26 +1,90 @@
 ---
 name: coder-agents
-description: Open the local Coder-Agents panel and delegate coding tasks to Kiro CLI sessions. Optional Codex integration.
+description: Start, open or close the Coder-Agents panel, or delegate coding and testing to configurable global roles using local Claude Code or Kiro CLI. Use when the user requests this workbench or a task benefits from CLI subagent delegation; inspect actual results and coordinate fixes.
 ---
 
-# Coder-Agents (optional Codex integration)
+# Coder-Agents
 
 Template. Replace `{{CODER_AGENTS_ROOT}}` with the absolute path of your Coder-Agents checkout when you install it
 (see `docs/codex-integration.md`). Do not commit the rendered file.
 
+Coder-Agents is a subagent workbench for tasks delegated by a primary agent. It is not recommended for standalone development as the primary agent. Codex owns scoping, delegation, coordination, review and final acceptance; use direct panel messages for task follow-ups and diagnostics.
+
 ## Commands
 
-All commands run as `PYTHONPATH={{CODER_AGENTS_ROOT}} python3 -m coder_agents <command>`.
+All commands run as `PYTHONPATH="{{CODER_AGENTS_ROOT}}" python3 -m coder_agents <command>`. When rendering this template, shell-quote the path appropriately if it contains shell metacharacters.
+
+## Start, open and close the panel
+
+When the user says “启动 Coder-Agents，打开面板” or asks to open this workbench:
+
+1. Run `start` using the absolute checkout entry above, from any project. It starts the Python server in the background, verifies readiness, and returns the public localhost URL. If already running, it reuses the verified instance. Do not use foreground `serve`, shell `&`, `nohup`, or install a system service for this request.
+2. Only after `start` succeeds, open the returned URL in Codex's browser using the available browser/open-panel tool. If unavailable, return a clickable URL. Do not claim that the browser opened unless the tool succeeded. Never put the private config token in the browser URL or output.
+3. On a startup failure, report the error and log location. If the command was denied specifically by sandbox permissions, request the normal execution approval for that command. Do not silently switch ports or kill another listener.
+
+When the user says “关闭 Coder-Agents 面板”, run `stop`. It closes only the panel server; CLI tasks and history remain. Do not kill runners or delete logs. Use `status` if asked whether it is running; a listening port alone does not prove service identity, while a successful `start` does.
+
+The panel is optional for delegation. Do not start it just to run a coding/testing task unless the user asks to see it. A stopped or idle-exited panel can be reopened by repeating `start`. Ordinary role edits do not require reinstalling this skill.
+
+## Delegation decisions
+
+Before each delegation, run `roles list` to read the currently enabled global roles and `roles show ID` for full instructions when needed. Do not copy role configuration into this skill or assume it has not changed. A missing config supplies built-in `coder` and `tester` roles using Claude; configured roles may use either CLI. Select roles by their actual responsibilities, including user-defined roles. Simple edits may be completed directly; automatic selection does not require delegating every task.
+
+Use `run --role ID ...` so the dispatcher applies the latest role's provider, model, effort, instructions, constraints and deliverables. Do not combine `--role` with provider/model/effort overrides, `--cli-path` or `--check`. If the user requests an incompatible CLI, explain the role configuration and ask them to update it or explicitly authorize a direct provider invocation; never silently replace their role settings. Disabled or missing roles are errors, not fallback triggers.
+
+Codex owns the task scope, integration and acceptance checks. Supply a concrete task and use separate agent IDs. Isolate concurrent edits in separate worktrees or checkouts; do not let workers overwrite each other's changes. Read each result and actual diff before integration.
+
+## Coding and testing coordination
+
+Codex is the primary agent, not a role managed by this product. Coordinate the workflow yourself; the product does not schedule dependencies or automatically wait/retry.
+
+1. Define the requirement, acceptance criteria and file ownership. Give `coder` responsibility for business implementation, and `tester` responsibility for test scripts and test feedback. Use the current role instructions if the user has customized these responsibilities.
+2. Assign the tester a **preparation-only** task to write test scripts and report commands and readiness. Do not ask it to poll or wait for another process. Coding and test preparation can overlap only with isolated or non-conflicting file ownership.
+3. Wait for coding to finish, inspect the outputs and make the implementation and test scripts available together. Resume the tester (same provider and cwd) or issue a fresh execution task to run tests and report concrete evidence.
+4. Pass failures to the coder, which fixes business implementation without weakening the tests. Have the tester rerun after the fix. A faulty test or ambiguous acceptance criterion is for Codex to judge; neither worker may silently lower the standard. Review existing modifications before any follow-up; fixes are deliberate tasks, not blind failure resubmissions.
+5. Codex reviews the actual diff, test coverage and test results and makes the final acceptance decision. No built-in reviewer or primary-agent role is required.
+
+Role work constraints are prompt instructions, not a sandbox or permission grant. Keep CLI tool permissions within the user's authorization. Role edits affect subsequent delegations; there is no separate role configuration snapshot.
+
+Use this checkout's absolute path from any target project; keep it available after global installation. The panel is optional for running the CLI entry point.
 
 - `status`: read-only state of config, port, active tasks and service units.
+- `roles list [--all]`: JSON of enabled global roles (or all roles including disabled); no CLI process or model call.
+- `roles show ID`: JSON of one role, including its enabled status.
+- `tasks list`: list registered tasks and reconcile definitely interrupted processes, without starting the panel.
+- `tasks show --run-dir /abs/run-directory`: read current task state and bounded final result. Inspect actual files and tests before acceptance.
+- `tasks stop --run-dir /abs/run-directory`: stop one task using its verified process identity; preserve modifications and logs. Do not use `stop` to cancel a task: `stop` closes only the panel. Unknown identity is a refusal, not permission to kill an arbitrary PID.
+- `run --role coder --cwd /abs/project --agent-id coder --title TITLE < task.txt`: dispatch with current global coding role.
+- `run --role tester --cwd /abs/project --agent-id tester --resume-id UUID < followup.txt`: resume testing after coding completes; verify the saved provider matches the current role before resuming. If it changed, start a new conversation.
 - `register --cwd /abs/project [--root /abs/project/work/kiro-runs]`: register a project with the running panel and print its URL.
-- `run --cwd /abs/project --agent-id ID --title TITLE < task.txt`: run one Kiro session. Add `--check` to test availability.
+- `run --provider claude --cwd /abs/project --agent-id ID --title TITLE < task.txt`: run Claude Code; stdin is the task, cwd is the project. Keep `--provider` explicit. Use `--provider kiro` for Kiro.
+- `run --provider claude --cwd /abs/project --check --timeout 60`: tool-free smoke request; consumes model quota.
+- `run --provider claude --cwd /abs/project --agent-id ID --resume-id UUID < followup.txt`: continue using the saved Claude `session_id` in the original cwd.
+- `start [--port N]`: start the panel detached, reuse a verified existing instance, and return its URL after readiness. Port selection is only for first configuration.
+- `serve`: foreground development/debugging on macOS/Linux; prefer `start` for normal panel use.
 - `stop`: close the panel's Python server. Tasks and history stay.
 
-## Rules
+## Claude delegation
 
-- The default model and effort are pinned by the runner (`claude-sonnet-5.5`, `medium`). Do not pass `--model`/`--effort`
-  yourself and do not accept a fallback; only the user may choose another model in the panel.
+Saved panel connections take precedence over PATH for both providers. If disconnected or the saved path is invalid, ask the user to reconnect in panel Settings. If paused, ask the user to start the saved connection. Do not silently substitute another executable or provider. Before a connection has ever been saved, explicit CLI delegation retains PATH fallback.
+
+Use a distinct agent ID and give the task a concrete scope and acceptance command. For coding, add `--permission-mode acceptEdits` when file edits are authorized. The default `dontAsk` never prompts interactively; permissions already allowed in Claude settings apply. A denied tool makes the run fail. Add narrowly scoped `--allowed-tools RULE` only when needed and authorized; this option is repeatable. Never add a permission bypass flag.
+
+Use `--run-dir /abs/new-run-directory` to choose a known output location (it must not exist). Otherwise output is in `<cwd>/work/kiro-runs/<run-id>/`, shared with legacy Kiro logs for compatibility:
+
+- `state.json`: provider, requested/actual model, native session ID, status, exit code and usage.
+- `result.txt`: Claude's final result; read `stderr.log` and `raw-events.jsonl` on failure.
+- `events.jsonl`: normalized messages/tool events for the panel.
+
+Only accept a run when status is completed and exit code is zero. Review the actual diff and run the acceptance checks. A submitted or interrupted task may have modified files; inspect before retrying. No automatic resubmission. Use the saved session ID for follow-ups; an agent ID alone does not resume Claude. Use `tasks stop --run-dir DIR` to cancel a task. Interrupted records are reconciled only when process identity proves the task ended; uncertain records require investigation.
+
+Role calls use the latest role model/effort. Ordinary direct Claude calls use product-saved defaults unless explicitly selected; direct resume preserves a matching recorded conversation's original model/effort. Before defaults have been saved, `sonnet`/medium remains the compatibility selection, not a discovered model directory. Honor the user's model choice; do not set fallback models. The panel reads the configured API endpoint's model directory explicitly; OAuth-only/key-helper/cloud authentication may not support directory reading. Do not extract private credential stores or replace an unavailable directory with invented aliases. Effort options describe CLI settings, not an API capability guarantee. The account credit bar is unavailable for Claude; reported task cost is not a claim of subscription billing.
+
+Runners automatically register project and log roots even while the panel is stopped. Roles are recorded as ID/name only, with no configuration snapshots. A role continuation reads current settings; a disabled role or changed provider must be resolved before continuation. Diagnostic summaries are credential-redacted; read their category and recommended next step, but never treat role instructions or a prior tool rejection as authorization to broaden permissions.
+
+## Kiro and shared rules
+
+- For direct Kiro calls, the default model and effort are pinned by the runner (`claude-sonnet-5.5`, `medium`). Do not choose other models yourself. For role calls, the dispatcher uses the user's saved role model/effort. Do not accept a silent fallback.
 - Do not enable automatic conversation cleanup, delete conversations or run `kiro_temp.py cleanup` unless the user asks.
 - Do not install or switch the system service without an explicit user request. `service install` is a dry run unless `--apply` is given.
-- Give each Kiro session a distinct `--agent-id`, a clear scope and a test command. Review the actual diff before accepting.
+- A conversation keeps its provider; never resume a Kiro session with Claude or change its working directory.

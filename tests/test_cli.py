@@ -89,6 +89,31 @@ class CliTests(Env):
                 self.assertNotIn(word, text, f"{word} in {path}")
 
 
+class KiroRuntimeTests(Env):
+    def test_macos_native_runtime_and_server(self):
+        import kiro_acp
+        data = self.home / "Library/Application Support/kiro-cli"
+        node = data / "node"
+        server = data / "kas/3/node_modules/@kiro/agent/dist/server/acp-server.js"
+        server.parent.mkdir(parents=True)
+        server.touch()
+        node.touch()
+        node.chmod(0o700)
+        with mock.patch.object(sys, "platform", "darwin"):
+            self.assertEqual(run_kiro.locate_node(self.env), str(node))
+            self.assertEqual(kiro_acp.server_command(self.env)[0], str(node))
+            self.assertEqual(kiro_acp.find_server_js(self.env), str(server))
+
+    def test_xdg_runtime_override_is_preserved(self):
+        data = self.home / "custom"
+        node = data / "kiro-cli/node"
+        node.parent.mkdir(parents=True)
+        node.touch()
+        node.chmod(0o700)
+        with mock.patch.object(sys, "platform", "darwin"):
+            self.assertEqual(run_kiro.locate_node({**self.env, "XDG_DATA_HOME": str(data)}), str(node))
+
+
 class SettingsTests(Env):
     def test_settings_location_and_explicit_env_priority(self):
         self.assertEqual(run_kiro.settings_path(), self.home / "cfg/coder-agents/settings.json")
@@ -129,6 +154,16 @@ class SettingsTests(Env):
 
 
 class ServiceTests(Env):
+    def setUp(self):
+        super().setUp()
+        # Exercise Linux installer planning without invoking systemd on the host.
+        platform = mock.patch.object(service.sys, "platform", "linux")
+        platform.start()
+        self.addCleanup(platform.stop)
+        boot = mock.patch.object(service, "current_boot_id", return_value="test-boot")
+        boot.start()
+        self.addCleanup(boot.stop)
+
     def plan(self, port=None, listening=lambda p: False):
         return service.plan_install(port, python="/usr/bin/python3", root=ROOT, listening=listening)
 
@@ -146,8 +181,9 @@ class ServiceTests(Env):
 
     def test_dry_run_changes_nothing(self):
         done = self.run_cli("service", "install", "--port", str(free_port()))
-        self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
-        self.assertIn("预演", done.stdout)
+        # The subprocess uses the real host platform: macOS must refuse systemd installation.
+        self.assertIn(done.returncode, (0, 3), done.stdout + done.stderr)
+        self.assertTrue("预演" in done.stdout or "仅支持 Linux" in done.stdout)
         self.assertEqual(list(self.home.rglob("*.socket")) + list(self.home.rglob("config.json")), [])
 
     def test_apply_writes_config_and_units_without_stopping_anything(self):

@@ -1,119 +1,85 @@
 # Coder-Agents
 
-Coder-Agents 是一个通用的本地 Agent 工作台：用 Python 标准库写的轻量服务，加一个本机网页面板，把你机器上已安装的编码 CLI Agent 串起来，用来启动、查看、续聊和审阅任务。
+让 Codex 调用本机 Claude Code 或 Kiro CLI 完成编码和测试，并通过网页面板查看任务、对话和执行结果。
 
-链路：**浏览器 → 本机 Python 服务（127.0.0.1）→ 本机 CLI Agent**。
+**本项目定位为 Subagent 工作台，仅用于执行主 Agent 委派的任务。** 建议由 Codex 等主 Agent 拆解需求、派发任务、协调编码与测试，并审核和最终验收；不建议直接把本项目作为主 Agent 独立完成开发。
 
-| 后端 | 状态 |
-| --- | --- |
-| Kiro CLI | **当前已接入**，是唯一可用的后端 |
-| Claude CLI 等其他本地 CLI | 规划中，**尚未支持**。目前没有 provider 抽象，面板里也没有选择后端的界面 |
+## 1. 启动面板
 
-本项目由原 Kiro Panel（`kiro-coding` skill 与 `kiro-panel` 插件）整理而来，保留 `scripts/` 与 `assets/` 布局。当前代码、数据目录名（`kiro-panel`）和部分命令仍带有 Kiro 命名，这是为兼容旧安装，不代表产品只服务 Kiro。
-
-## 环境要求
-
-- Linux（本版本不承诺其他平台）。
-- Python 3.9 及以上。无第三方 Python 依赖。
-- 当前后端需要 **已登录的 Kiro CLI**（`kiro-cli`）。登录凭据由 Kiro CLI 自己保存，不进入本仓库。
-- Git：仅用于面板的改动审阅功能。
-- 不需要构建前端，不需要 `pip install`、systemd、Codex 或全局 `AGENTS.md`。`npm` 只在开发、跑 DOM 测试时用到。
-
-## 从 GitHub 拉取后使用
+需要 macOS 或 Linux、Python 3.9+，以及 Claude Code 或 Kiro CLI。CLI 的安装方法也可在面板的“CLI 连接”中查看。
 
 ```bash
 git clone https://github.com/Kevin-Kim0102/Coder-Agents.git
 cd Coder-Agents
-python3 -m coder_agents serve
+python3 -m coder_agents start
 ```
 
-然后用浏览器打开固定入口 **http://127.0.0.1:47831/**。
+打开命令返回的地址，默认是 [http://127.0.0.1:47831/](http://127.0.0.1:47831/)。服务在后台运行，可以关闭终端；已启动时会复用现有面板。
 
-- 首次 `serve` 会创建 `~/.local/state/kiro-panel/config.json`（权限 0600，含随机 token）。端口默认 47831，仅在首次创建配置时可用 `--port` 指定；已有配置时不会改写。
-- token 不出现在页面和地址里，浏览器只持有 HttpOnly cookie。
-- 如果 47831 已有服务在监听（例如旧版 Kiro Panel 或你已启动的实例），`serve` 会拒绝启动，不会开第二个服务。此时直接打开上面的地址即可。
+## 2. 连接 CLI
 
-### 服务何时退出
+1. 打开 **设置 → CLI 连接**，选择 Claude Code 或 Kiro CLI。
+2. 点击 **连接**，未登录时按提示完成登录。找不到 CLI 时填写可执行文件的绝对路径。
+3. 连接成功后会读取模型列表，也可以点击 **读取模型目录** 重试。
 
-`serve` 在前台运行，没有任务时空闲 120 秒（配置项 `idle_timeout`）后自动退出，并且无论如何最长运行 8 小时；有进行中的任务时不会因空闲退出。退出后固定入口没有 socket 可连，需要重新运行 `python3 -m coder_agents serve`。
+已连接的 CLI 可以暂停、启动或断开。**测试调用** 会消耗少量模型额度，按需使用。
 
-`Ctrl+C` 或 `python3 -m coder_agents stop` 都只关闭 Python 服务，不会删除对话历史和任务日志。
+Claude 的模型列表读取当前 CLI 配置的 API 地址（包括代理/中转），可在此保存默认模型和思考强度；Kiro 继续读取账户模型目录。若 API 不支持模型目录或只使用订阅登录，页面会说明限制，不用固定列表替代。思考强度是 CLI 选项，实际支持情况由执行时验证。
 
-## 项目与对话
+Claude 额度栏可点击“刷新”，从当前项目生效的 CLI API 地址查询 Sub2API 兼容的 `/v1/usage`。显示接口提供的已用量、上限或余额，以及更新时间；只有明确返回重置时间才显示“几h 几m 后重置”的倒计时，缺失时显示“重置时间未知”。切换 API 地址后查询随之切换，不固定服务商域名。不支持该协议或无法复用认证时会显示原因，普通页面轮询不请求外部额度接口。
 
-- **其他对话**：不需要任何项目。新对话在 `~/Documents/Codex/<日期>` 下运行，日期按香港时区（`Asia/Hong_Kong`）计算；可用配置项 `daily_base` 改目录。目录名与时区目前是沿袭旧版的默认值，尚不能在面板里改。
-- **Codex 项目自动发现**：面板会只读地读取 Codex 私有状态文件 `~/.codex/.codex-global-state.json` 来列出 Codex 项目。该文件不是公开接口，格式可能变；文件不存在时只显示“其他对话”和已注册项目。没有安装 Codex 完全不影响使用。
-- **没有 Codex 时指定项目目录**：在另一个终端对该项目运行任务，任务日志会写到 `<项目>/work/kiro-runs/`：
+## 3. 配置角色
 
-  ```bash
-  printf '%s\n' '阅读项目并总结目录结构，不要修改文件' | \
-    python3 -m coder_agents run --cwd /绝对路径/项目 --agent-id demo --title "示例任务"
-  ```
+在 **设置 → Subagent 角色** 中编辑内置角色，或新增自定义角色。每个角色可以选择 CLI、模型和思考强度，并设置职责与交付要求。
 
-  面板正在运行时，再用 `register` 把这个项目的日志展示出来：
+- **编码**：实现业务代码，根据测试反馈修复问题。
+- **测试**：编写测试脚本，编码完成后执行测试、反馈并复测。
 
-  ```bash
-  python3 -m coder_agents register --cwd /绝对路径/项目
-  ```
+角色配置全局生效，保存后在下次委派时使用。Codex 负责派遣、安排执行顺序、审核和最终验收。
 
-  `register` 只是让运行中的面板读取该项目的日志目录并打印页面 URL，**不是**“在界面里新建可选项目”的功能，这个界面目前不支持。
+## 4. 让 Codex 使用
 
-## 模型
+1. 在 **设置 → Codex 技能** 中复制安装提示词。
+2. 在本项目的 Codex 对话中发送提示词，完成一次全局 Skill 安装。
+3. 安装后新建 Codex 对话，即可在其他项目中使用。
 
-`run` 不带 `--model` 时，当前 Kiro runner 默认使用 `claude-sonnet-5.5` + `medium`，并由 `kiro_acp_relay.py` 确认实际选中后才转发任务，不会静默回退。在面板里，用户可以从自己 Kiro 账户的真实模型目录中选择其他模型与强度，后端会对照目录校验。这些是当前 Kiro runner 的行为，不是对未来后端的约定。
+例如，对 Codex 说：
 
-## 命令
+> 使用 $coder-agents，让编码和测试角色完成登录功能，由你协调并验收。
 
-| 命令 | 作用 |
-| --- | --- |
-| `serve [--port N]` | 前台启动面板 |
-| `status` | 只读：路径、端口、活跃任务、服务单元状态 |
-| `run ...` | 运行一个 Kiro 任务，任务文本从 stdin 读入，参数交给 `scripts/run_kiro.py`；`--check` 做可用性检查（会发一次模型请求） |
-| `register --cwd DIR [--root DIR]` | 让运行中的面板读取项目的日志目录 |
-| `stop` | 关闭面板服务（任务与历史保留） |
-| `settings path\|init\|migrate-legacy [--apply]` | 用户设置；默认只预演 |
-| `selfcheck` | 检查运行资源是否完整 |
-| `service status\|install\|uninstall [--apply]` | 高级可选：systemd 用户服务，默认只预演 |
-| `legacy link\|unlink [--legacy DIR] [--apply]` | 高级可选：把旧 kiro-coding 安装指向本仓库，见 [docs/legacy-link.md](docs/legacy-link.md) |
+面板中的直接消息用于补充任务指令、排查问题和查看执行结果；完整开发任务建议交给主 Agent 统一协调。
 
-用 `python3 -m coder_agents --help` 与各子命令的 `--help` 查看完整参数。
+界面会显示任务角色。角色续聊使用最新角色配置；已停用或更换 CLI 时会提示处理。角色任务使用角色模型，普通新对话使用 Claude 默认配置，已有普通对话保留原选择。
 
-## 设置、代理与数据
+执行中的任务可单独停止，已修改的项目文件保留；异常退出的任务在确认进程已结束后标记中断。失败时可打开诊断并复制给 Codex，权限不足不会自动扩权或重新提交。
 
-- 设置文件不在仓库内：`$CODER_AGENTS_SETTINGS`，否则 `${XDG_CONFIG_HOME:-~/.config}/coder-agents/settings.json`。示例见 [examples/settings.example.json](examples/settings.example.json)，不预设任何代理。`python3 -m coder_agents settings init --apply` 复制示例。
-- 代理：`proxy_defaults` 里的 `HTTPS_PROXY` 等只作默认值，显式环境变量优先。
-- 面板配置与项目注册表：`~/.local/state/kiro-panel/`。目录名为兼容旧安装暂时保留 `kiro-panel`，未来改为统一命名只是计划，目前没有实现。
-- 对话历史与任务日志：各项目的 `work/kiro-runs/`；任务临时目录 `work/tmp/<id>/`，本仓库的命令不会主动删除它们。面板有“清理 7 天前不活跃对话”的功能，由配置里的 `auto_cleanup_enabled` 控制：`serve` 新建的配置写入 `false`（关闭）；但**缺少该键的旧配置会按开启处理**，所以沿用旧配置时请确认它是 `false`，不想自动清理就显式写 `false`。
-- 登录凭据、token 和个人路径都不应提交进仓库。
-
-## 可选：Codex skill
-
-不用 Codex 也能完整使用面板。如果你在用 Codex，并希望它能委派任务，可参考 [docs/codex-integration.md](docs/codex-integration.md) 里的模板生成自己的本机 skill。**无需修改全局 `AGENTS.md`**，也没有 setup 命令。只有你希望所有项目都默认委派时，才需要自己手动往个人偏好里加规则。该模板对应当前的 Kiro 能力，适配其他 CLI 要等后续实现。
-
-## 开发与测试
+Codex 也可以通过统一命令管理任务：
 
 ```bash
-python3 -m pip install "setuptools>=61" wheel   # 仅开发/打包测试需要，运行时仍零依赖
-python3 -m unittest discover -s tests -v   # 后端与 CLI 测试
-npm ci && npm test                          # DOM 测试（jsdom 为 devDependency）
+python3 -m coder_agents tasks list
+python3 -m coder_agents tasks show --run-dir /path/to/run
+python3 -m coder_agents tasks stop --run-dir /path/to/run
 ```
 
-缺少 Node/npm 或 jsdom 时 DOM 测试会失败，不会被跳过。
+任务启动时自动登记项目和日志目录，因此独立 worktree 或自定义日志位置的任务也能在面板中查看。
 
-## 目录
+## 5. 关闭与重新打开
 
+安装 Skill 后，可以直接对 Codex 说：
+
+> 关闭 Coder-Agents 面板。
+
+> 启动 Coder-Agents，打开面板。
+
+也可在 **设置 → 服务与资源** 中关闭服务。
+
+也可以在项目目录终端中手动执行：
+
+```bash
+python3 -m coder_agents start   # 后台启动
+python3 -m coder_agents stop    # 关闭服务
 ```
-coder_agents/   CLI 入口（python3 -m coder_agents）、服务安装器
-scripts/        run_kiro、watch_kiro 等 Python 模块
-assets/         viewer.html 与 vendor/（marked、DOMPurify 及许可证）
-tests/          unittest 与 jsdom 测试
-docs/           架构、Codex 集成、旧安装链接、许可证
-integrations/   可选的 Codex skill 模板
-examples/       示例设置
-```
 
-## 许可证
+关闭面板服务会保留 CLI 连接、角色配置和历史记录，正在运行的 CLI 任务继续执行。
 
-作者尚未选定许可证，仓库中没有 `LICENSE` 文件，**目前不是开源项目**。详见 [docs/licensing.md](docs/licensing.md)、[第三方声明](THIRD_PARTY_NOTICES.md)。
-
-文档：[架构](docs/architecture.md) · [Codex 集成](docs/codex-integration.md)
+更多说明：[Codex 集成](docs/codex-integration.md) · [技术文档](docs/architecture.md) · [许可证说明](docs/licensing.md)

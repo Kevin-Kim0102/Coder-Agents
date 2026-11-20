@@ -16,6 +16,7 @@ from pathlib import Path
 import queue
 import re
 import subprocess
+import sys
 import threading
 import time
 
@@ -50,13 +51,22 @@ def scrub(text):
     return text[:600]
 
 
+def data_directory(environment):
+    """Kiro's platform data root, honoring an explicit XDG override."""
+    if environment.get("XDG_DATA_HOME"):
+        return Path(environment["XDG_DATA_HOME"]) / "kiro-cli"
+    home = Path(environment.get("HOME") or Path.home())
+    base = home / "Library/Application Support" if sys.platform == "darwin" else home / ".local/share"
+    return base / "kiro-cli"
+
+
 def find_server_js(environment=None):
     """Path of the installed KAS entry point (newest installed version), or None."""
     environment = os.environ if environment is None else environment
     explicit = environment.get("KIRO_KAS_SERVER_JS")
     if explicit:
         return explicit if os.path.isfile(explicit) else None
-    data = Path(environment.get("XDG_DATA_HOME") or Path.home() / ".local/share") / "kiro-cli"
+    data = data_directory(environment)
     found = sorted(glob.glob(str(data / SERVER_GLOB)), key=lambda p: (os.path.getmtime(p), p))
     return found[-1] if found else None
 
@@ -65,8 +75,7 @@ def server_command(environment):
     """argv that starts KAS on stdio with host-mediated auth, or raises AcpError."""
     node = environment.get("KIRO_RELAY_REAL_NODE") or environment.get("KIRO_KAS_NODE_PATH")
     if not node:
-        data = Path(environment.get("XDG_DATA_HOME") or Path.home() / ".local/share")
-        node = str(data / "kiro-cli" / "node")
+        node = str(data_directory(environment) / "node")
     server = find_server_js(environment)
     if not os.access(node, os.X_OK):
         raise AcpError("kas_missing", "找不到 Kiro 的 Node 运行时，无法读取账户信息")

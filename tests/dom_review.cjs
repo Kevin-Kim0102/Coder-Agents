@@ -23,20 +23,31 @@ function conv(id, events, status = 'completed') {
 }
 function view(w, params) {
   const groups = [{ id: 'g', kind: 'codex', name: 'Proj', path: '/p', roots: ['/p'], exists: true, can_create: true, note: '',
-    conversations: Object.entries(w.convs).map(([id, c]) => ({ key: 's1:' + id, source: 's1', id, title: c.title, status: c.status, created_at: '2030-05-06T07:00:00Z', activity: 1, cwd: '/p', turn_count: 1, deletable: true })) }];
+    conversations: Object.entries(w.convs).map(([id, c]) => ({ key: 's1:' + id, source: 's1', id, title: c.title, status: c.status, role_id:c.role_id,role_name:c.role_name, created_at: '2030-05-06T07:00:00Z', activity: 1, cwd: '/p', turn_count: 1, deletable: true })) }];
   const agent = params.get('agent'), c = w.convs[agent];
-  const selected = c ? { id: agent, title: c.title, status: c.status, created_at: '2030-05-06T07:00:00Z', cwd: '/p', source: 's1', group: 'g', key: 's1:' + agent, config: null, context: null } : null;
+  const selected = c ? { id: agent, title: c.title, status: c.status, role_id:c.role_id,role_name:c.role_name,role_error:c.role_error, created_at: '2030-05-06T07:00:00Z', cwd: '/p', source: 's1', group: 'g', key: 's1:' + agent, config: c.config||null, context: null, provider:c.provider||'kiro' } : null;
   return { groups, selected, turns: c ? c.runs : [], root: '/logs', source_groups: { s1: 'g' }, default: { group: 'g', source: 's1' }, catalog: { status: 'ok', message: '' },
-    viewer: { active_tasks: 0, cleanup: {}, memory_mb: 1, account: null } };
+    viewer: { installation_root:w.installationRoot, active_tasks: 0, cleanup: {}, memory_mb: 1, account: null, providers:w.connections?.providers||w.providers,default_provider:w.connections?.default_provider||w.default_provider,connections_required:!!w.connections } };
 }
 function boot(w, options = {}) {
   const calls = [], errors = [], vc = new VirtualConsole();
   vc.on('jsdomError', e => errors.push(e));
   const server = (url, init) => {
     const u = new URL(url, 'http://127.0.0.1:47831'), q = u.searchParams;
-    calls.push({ path: u.pathname, query: Object.fromEntries(q), post: !!(init && init.method === 'POST') });
+    calls.push({ path: u.pathname, query: Object.fromEntries(q), post: !!(init && init.method === 'POST'), body:init?.body?JSON.parse(init.body):null });
     if (u.pathname === '/api') return respond(view(w, q));
-    if (u.pathname === '/api/models') return respond({ status: 'unavailable', models: [], default: null });
+    if (u.pathname === '/api/tasks/stop') return w.taskStop?w.taskStop(JSON.parse(init.body)):respond({stopped:true});
+    if (u.pathname === '/api/temp/overview' && w.cleanupOverview) return respond(w.cleanupOverview);
+    if (u.pathname === '/api/temp/bulk' && w.cleanupAction) return w.cleanupAction(JSON.parse(init.body));
+    if (u.pathname === '/api/roles') {
+      if(init?.method==='POST')return w.roleAction?w.roleAction(JSON.parse(init.body)):respond({error:'save failed'},400);
+      return respond(w.roles||{version:1,revision:'missing',roles:[]});
+    }
+    if (u.pathname === '/api/connections') {
+      if(init?.method==='POST')return w.connectionAction? w.connectionAction(JSON.parse(init.body)):respond({ok:false,message:'not connected'},400);
+      return respond(w.connections||{providers:[],default_provider:null});
+    }
+    if (u.pathname === '/api/models') return respond(w.models?w.models(q):{ status: 'unavailable', models: [], default: null });
     if (u.pathname.startsWith('/api/review')) {
       const echo = { group: q.get('group'), source: q.get('source'), agent: q.get('agent') };
       const handler = w.review[u.pathname];
@@ -48,6 +59,7 @@ function boot(w, options = {}) {
   };
   const dom = new JSDOM(pageHtml, { url: 'http://127.0.0.1:47831/', runScripts: 'dangerously', pretendToBeVisual: true, virtualConsole: vc,
     beforeParse(window) {
+      window.matchMedia = query => ({matches:(options.width||1024)<=640,media:query,addEventListener(){},removeEventListener(){}});
       window.fetch = (url, init) => {
         const signal = init && init.signal;
         const result = Promise.resolve(server(String(url), init));
@@ -582,6 +594,343 @@ test('an existing specific Chinese title is kept; generic ones fall back to the 
   assert.equal(page.title(0), '运行单元测试并汇总失败用例');
   assert.match(page.card(0).textContent, /沿用工具给出的中文描述/);
   assert.doesNotMatch(page.card(0).textContent, /按“执行命令”显示/);
+});
+
+test('Claude continuation renders current messages and tool output without duplicating the final result', async () => {
+  const c = conv('claude', [
+    JSON.stringify({sessionUpdate:'agent_message_chunk',content:{type:'text',text:'本轮 Claude 回复'}}),
+    JSON.stringify({sessionUpdate:'tool_call',toolCallId:'read-1',title:'Read',kind:'read',status:'in_progress',rawInput:{file_path:'/p/a.txt'}}),
+    JSON.stringify({sessionUpdate:'tool_call_update',toolCallId:'read-1',status:'completed',rawOutput:'内容'}),
+    JSON.stringify({type:'runFinished',data:{finalText:'本轮 Claude 回复',status:'success'}})
+  ]);
+  c.runs[0].state.provider='claude';c.runs[0].state.resume_id='native-session';
+  const t = await boot(newWorld({claude:c})).ready();await t.openConv('claude');
+  assert.equal(t.cards().length,1);
+  assert.equal(t.$('conversation').textContent.split('本轮 Claude 回复').length-1,1);
+  assert.match(t.$('conversation').textContent,/Claude/);
+  assert.doesNotMatch(t.$('conversation').textContent,/Kiro/);
+  assert.ok(t.$('provider-select'));
+  const usage=t.ev('usageModel({status:"unsupported",message:"Claude 暂不支持账户额度"})');
+  assert.equal(usage.main,'Claude 暂不支持账户额度');
+});
+
+test('settings categories keep installation with CLI and load storage only on demand', async () => {
+  const w=newWorld({});w.connections={providers:[{id:'claude',name:'Claude Code',path:'',status:'disconnected',available:false}],default_provider:null};
+  const t=await boot(w).ready();t.click(t.$('settings-open'));await settle();
+  assert.equal(t.$('settings-page-cli').hidden,false);
+  assert.equal(t.$('settings-page-storage').hidden,true);
+  assert.equal(t.calls.filter(c=>c.path==='/api/temp/overview').length,0);
+  t.click(t.$('cli-card-open-claude'));await settle();
+  assert.ok(t.$('cli-config-claude').contains(t.$('cli-install-claude')));
+  t.$('cli-path-claude').value='/typed/claude';t.$('cli-path-claude').dispatchEvent(new t.window.Event('input'));
+  t.click(t.$('settings-tab-storage'));await settle();
+  assert.equal(t.$('settings-tab-storage').getAttribute('aria-selected'),'true');
+  assert.equal(t.$('settings-page-cli').hidden,true);
+  assert.ok(t.$('settings-page-storage').contains(t.$('retention-note')));
+  assert.ok(t.$('settings-page-storage').contains(t.$('log-root')));
+  assert.equal(t.calls.filter(c=>c.path==='/api/temp/overview').length,1);
+  t.click(t.$('settings-tab-service'));
+  assert.ok(t.$('settings-page-service').contains(t.$('stop-viewer')));
+  t.click(t.$('settings-tab-cli'));await settle();
+  assert.equal(t.$('cli-path-claude').value,'/typed/claude');
+  assert.equal(t.calls.filter(c=>c.post).length,0);
+  assert.equal(t.errors.length,0);
+});
+
+test('settings tabs support keyboard navigation and preserve the active category on reopen', async () => {
+  const t=await boot(newWorld({})).ready();t.click(t.$('settings-open'));
+  const key=(id,value)=>t.$(id).dispatchEvent(new t.window.KeyboardEvent('keydown',{key:value,bubbles:true}));
+  key('settings-tab-cli','ArrowDown');
+  assert.equal(t.document.activeElement.id,'settings-tab-skill');
+  key('settings-tab-skill','ArrowDown');
+  assert.equal(t.document.activeElement.id,'settings-tab-roles');
+  key('settings-tab-roles','ArrowDown');
+  assert.equal(t.document.activeElement.id,'settings-tab-storage');
+  assert.equal(t.$('settings-page-storage').hidden,false);
+  key('settings-tab-storage','End');
+  assert.equal(t.document.activeElement.id,'settings-tab-help');
+  assert.equal(t.$('settings-page-help').hidden,false);
+  t.click(t.$('settings-close'));t.click(t.$('settings-open'));
+  assert.equal(t.$('settings-page-help').hidden,false);
+  key('settings-tab-help','Home');
+  assert.equal(t.document.activeElement.id,'settings-tab-cli');
+  assert.equal(t.$('settings-tab-cli').tabIndex,0);
+  assert.equal(t.$('settings-tab-help').tabIndex,-1);
+});
+
+test('narrow settings use horizontal tab semantics', async () => {
+  const t=await boot(newWorld({}),{width:390}).ready();
+  assert.equal(t.$('settings-nav').getAttribute('aria-orientation'),'horizontal');
+  t.click(t.$('settings-open'));t.key('ArrowRight',t.$('settings-tab-cli'));
+  assert.equal(t.$('settings-page-skill').hidden,false);
+});
+
+test('CLI cards group connections and pause without opening configuration', async () => {
+  const w=newWorld({});w.connections={default_provider:'claude',providers:[{id:'claude',name:'Claude Code',connected:true,available:true,status:'connected',path:'/saved/claude'},
+    {id:'kiro',name:'Kiro CLI',connected:false,available:false,status:'disconnected',path:''}]};
+  w.connectionAction=body=>{assert.equal(body.provider,'claude');assert.ok(['pause','start'].includes(body.action));
+    Object.assign(w.connections.providers[0],{paused:body.action==='pause',available:body.action==='start',status:body.action==='pause'?'paused':'connected'});
+    return respond({ok:true,message:body.action==='pause'?'已暂停':'已启动',...w.connections});};
+  const t=await boot(w).ready();t.click(t.$('settings-open'));await settle();
+  assert.ok(t.$('cli-connected-list').contains(t.$('cli-card-claude')));
+  assert.ok(t.$('cli-disconnected-list').contains(t.$('cli-card-kiro')));
+  assert.ok(t.$('cli-card-claude').querySelector('svg,img'));
+  assert.ok(t.$('cli-card-kiro').querySelector('svg,img'));
+  t.click(t.$('cli-toggle-claude'));await settle();
+  assert.equal(t.$('cli-overview').hidden,false);
+  assert.ok(t.$('cli-connected-list').contains(t.$('cli-card-claude')));
+  assert.equal(t.$('cli-toggle-claude').textContent,'启动');
+  t.click(t.$('cli-toggle-claude'));await settle();
+  assert.equal(t.$('cli-toggle-claude').textContent,'暂停');
+  t.click(t.$('cli-card-open-claude'));await settle();
+  assert.equal(t.$('cli-connect-claude').textContent,'暂停');
+  t.click(t.$('cli-connect-claude'));await settle();
+  assert.equal(t.$('cli-connect-claude').textContent,'启动');
+  assert.equal(t.$('cli-toggle-claude').textContent,'启动');
+  t.click(t.$('cli-connect-claude'));await settle();
+  assert.equal(t.$('cli-connect-claude').textContent,'暂停');
+  assert.equal(t.$('cli-toggle-claude').textContent,'暂停');
+  assert.equal(t.calls.filter(c=>c.body?.action==='disconnect').length,0);
+  assert.equal(t.calls.filter(c=>c.body?.action==='connect').length,0);
+  assert.equal(t.errors.length,0);
+});
+
+test('provider configuration displays model lists for a non-default CLI and retains errors safely', async () => {
+  const w=newWorld({});w.connections={default_provider:'claude',providers:[{id:'claude',name:'Claude Code',connected:true,available:true,status:'connected'},
+    {id:'kiro',name:'Kiro CLI',connected:true,available:true,status:'connected',path:'/saved/kiro'}]};
+  let fail=false;
+  w.connectionAction=body=>{assert.equal(body.provider,'kiro');assert.equal(body.action,'catalog');
+    return fail?respond({ok:false,message:'读取目录失败'},400):respond({ok:true,message:'目录已读取',catalog:{status:'ok',models:[{id:'model-one',name:'First',effort:{levels:['low','high']}},{id:'<script>danger</script>',name:'<img onerror=oops>'}]}});};
+  const t=await boot(w).ready();t.click(t.$('settings-open'));await settle();
+  t.click(t.$('cli-card-open-kiro'));await settle();
+  assert.equal(t.$('cli-overview').hidden,true);
+  assert.equal(t.$('cli-config-kiro').hidden,false);
+  assert.equal(t.$('cli-config-claude').hidden,true);
+  assert.equal(t.$('cli-path-kiro').value,'/saved/kiro');
+  assert.ok(t.$('cli-install-kiro').textContent.includes('kiro-cli'));
+  t.click(t.$('cli-catalog-kiro'));await settle();
+  assert.ok(t.$('cli-model-list-kiro').textContent.includes('model-one'));
+  assert.ok(t.$('cli-model-list-kiro').textContent.includes('low / high'));
+  assert.equal(t.$('cli-model-list-kiro').querySelector('script,img'),null);
+  fail=true;t.click(t.$('cli-catalog-kiro'));await settle();
+  assert.match(t.$('cli-feedback-kiro').textContent,/读取目录失败/);
+  assert.ok(t.$('cli-model-list-kiro').textContent.includes('model-one'));
+  t.click(t.$('cli-config-back'));assert.equal(t.$('cli-overview').hidden,false);
+  assert.equal(t.document.activeElement.id,'cli-card-open-kiro');
+  assert.equal(t.errors.length,0);
+});
+
+test('new user connects Claude from settings without automatic model queries', async () => {
+  const w=newWorld({});w.connections={default_provider:null,providers:[{id:'claude',name:'Claude Code',path:'',status:'disconnected',available:false},{id:'kiro',name:'Kiro CLI',path:'',status:'disconnected',available:false}]};
+  w.connectionAction=body=>{
+    assert.equal(body.action,'connect');assert.equal(body.provider,'claude');assert.equal(body.path,'/custom/claude');
+    w.connections.default_provider='claude';Object.assign(w.connections.providers[0],{available:true,connected:true,path:body.path,status:'connected',version:'2.1.78 (Claude Code)'});
+    return respond({ok:true,message:'连接成功',...w.connections});
+  };
+  const t=await boot(w).ready();
+  assert.equal(t.calls.filter(c=>c.path==='/api/models').length,0);
+  assert.match(t.$('composer-hint').textContent,/连接/);
+  t.click(t.$('settings-open'));await settle();
+  assert.equal(t.calls.filter(c=>c.post).length,0);
+  t.click(t.$('cli-card-open-claude'));await settle();
+  t.$('cli-path-claude').value='/custom/claude';t.$('cli-path-claude').dispatchEvent(new t.window.Event('input'));
+  t.click(t.$('cli-connect-claude'));await settle();
+  assert.match(t.$('cli-feedback-claude').textContent,/连接成功/);
+  assert.equal(t.$('cli-path-claude').value,'/custom/claude');
+  assert.equal(t.$('cli-test-claude').disabled,false);
+  assert.equal(t.calls.filter(c=>c.body?.action==='test').length,0);
+  assert.equal(t.errors.length,0);
+});
+
+test('Kiro connect applies returned catalog without another request or paid test', async () => {
+  const w=newWorld({});w.connections={default_provider:null,providers:[{id:'kiro',name:'Kiro CLI',path:'',status:'disconnected',available:false}]};
+  const catalog={status:'ok',models:[{id:'first',name:'First',selectable:true,effort:{known:true,supported:false,levels:[]}},
+    {id:'second',name:'Second',selectable:true,effort:{known:true,supported:false,levels:[]}}],default:{available:true,model:'first',effort:null}};
+  w.connectionAction=body=>{
+    assert.equal(body.action,'connect');w.connections.default_provider='kiro';
+    Object.assign(w.connections.providers[0],{available:true,connected:true,path:'/saved/kiro',status:'connected'});
+    return respond({ok:true,message:'连接成功，模型目录已读取',catalog,...w.connections});
+  };
+  const t=await boot(w).ready();t.click(t.$('settings-open'));await settle();
+  t.click(t.$('cli-card-open-kiro'));await settle();
+  t.click(t.$('cli-connect-kiro'));await settle();
+  assert.equal(t.ev('modelsData.models.length'),2);
+  assert.equal(t.calls.filter(c=>c.path==='/api/models'&&c.query.refresh).length,0);
+  assert.equal(t.calls.filter(c=>c.body?.action==='test').length,0);
+  assert.match(t.$('cli-feedback-kiro').textContent,/目录已读取/);
+});
+
+test('connection failures retain typed paths and test call is explicit', async () => {
+  const w=newWorld({});w.connections={default_provider:'claude',providers:[{id:'claude',name:'Claude Code',path:'/saved/claude',status:'connected',connected:true,available:true}]};
+  w.connectionAction=body=>body.action==='test'?respond({ok:true,message:'模型测试成功'}):respond({ok:false,message:'尚未登录，请执行 claude auth login'},400);
+  const t=await boot(w).ready();t.click(t.$('settings-open'));await settle();
+  t.click(t.$('cli-card-open-claude'));await settle();
+  t.$('cli-path-claude').value='/typed/claude';t.$('cli-path-claude').dispatchEvent(new t.window.Event('input'));
+  await t.poll();assert.equal(t.$('cli-path-claude').value,'/typed/claude');
+  t.click(t.$('cli-connect-claude'));await settle();
+  assert.match(t.$('cli-feedback-claude').textContent,/尚未登录/);
+  assert.equal(t.$('cli-path-claude').value,'/typed/claude');
+  t.click(t.$('cli-test-claude'));await settle();
+  assert.match(t.$('cli-feedback-claude').textContent,/模型测试成功/);
+  assert.equal(t.calls.filter(c=>c.body?.action==='test').length,1);
+});
+
+test('startup queries only the configured Claude provider', async () => {
+  const w=newWorld({});w.providers=[{id:'kiro',name:'Kiro CLI',available:true},{id:'claude',name:'Claude Code',available:true}];w.default_provider='claude';
+  const t=await boot(w).ready();
+  const requests=t.calls.filter(c=>c.path==='/api/models');
+  assert.ok(requests.length>0);
+  assert.ok(requests.every(c=>c.query.provider==='claude'),JSON.stringify(requests));
+});
+
+test('provider selector routes model requests and locks existing Claude conversations', async () => {
+  const c=conv('claude',[]);c.provider='claude';c.config={model:'sonnet',effort:'medium'};
+  const w=newWorld({claude:c});w.providers=[{id:'kiro',name:'Kiro CLI',available:true},{id:'claude',name:'Claude Code',available:true}];w.default_provider='kiro';
+  w.models=q=>({provider:q.get('provider'),status:'ok',models:[{id:'sonnet',name:'Sonnet',selectable:true,effort:{known:true,supported:true,levels:['medium'],default:'medium'}}],default:{available:true,model:'sonnet',effort:'medium'}});
+  const t=await boot(w).ready();await t.openConv('claude');
+  assert.equal(t.$('provider-select').value,'claude');assert.equal(t.$('provider-select').disabled,true);
+  assert.ok(t.calls.some(c=>c.path==='/api/models'&&c.query.provider==='claude'));
+  t.ev("select({group:'g'})");await settle();
+  assert.equal(t.$('provider-select').disabled,false);
+  t.$('provider-select').value='claude';t.$('provider-select').dispatchEvent(new t.window.Event('change'));await settle();
+  assert.equal(t.$('model-select').value,'sonnet');
+  assert.equal(t.ev('currentProvider()'),'claude');
+  assert.match(t.$('account').textContent,/刷新|额度/);
+  assert.equal(t.errors.length,0);
+});
+
+test('Claude API quota uses actual units and optional reset without composer model refresh', async () => {
+  const t=await boot(newWorld({})).ready();
+  assert.equal(t.$('models-refresh'),null);
+  const result=t.ev('usageModel({provider:"claude",status:"ok",fetched_at:"2026-11-20T02:17:44Z",data:{used:400,limit:500,unit:"USD",period:"daily",next_reset_at:"2026-11-20T05:37:44Z"}}, Date.parse("2026-11-20T02:17:44Z"))');
+  assert.match(result.main,/400.*used \/ 500/);assert.match(result.main,/USD/);
+  assert.equal(result.reset,'3h 20m 后重置');assert.equal(result.coverage,null);
+  const noReset=t.ev('usageModel({provider:"claude",status:"ok",data:{used:0,limit:500,unit:"USD",period:"daily"}})');
+  assert.equal(noReset.reset,'重置时间未知');assert.doesNotMatch(noReset.reset,/Kiro/);
+  const expired=t.ev('usageModel({provider:"claude",status:"ok",data:{used:400,limit:500,next_reset_at:"2026-11-20T02:00:00Z"}}, Date.parse("2026-11-20T02:17:44Z"))');
+  assert.equal(expired.reset,'等待重置');
+});
+
+test('global skill setup copies a portable prompt without exposing the local source path', async () => {
+  const w=newWorld({});w.installationRoot='/Users/example/My Agents/<checkout>';
+  const t=await boot(w).ready();t.click(t.$('settings-open'));t.click(t.$('settings-tab-skill'));await settle();
+  assert.equal(t.$('settings-page-skill').hidden,false);
+  const prompt=t.$('skill-prompt').value;
+  assert.equal(prompt.includes(w.installationRoot),false);assert.match(prompt,/当前对话的工作目录/);assert.match(prompt,/全局/);
+  assert.equal(t.$('skill-setup-instruction').parentElement.textContent,'在此项目中与codex对话，发送以下提示词，配置全局skill。');
+  assert.equal(t.$('skill-source'),null);
+  assert.doesNotMatch(prompt,/CODEX_HOME|~\/\.codex\/skills|~\/\.agents\/skills/);
+  assert.match(prompt,/自行.*全局.*目录/);
+  assert.ok(prompt.includes('integrations/codex/SKILL.md.template'));
+  assert.ok(prompt.includes('integrations/codex/openai.yaml.template'));
+  assert.doesNotMatch(prompt,/roles list|run --role|state\.json/);
+  t.click(t.$('skill-copy'));await settle();assert.equal(t.copied.pop(),prompt);
+  assert.equal(t.calls.some(c=>c.post),false);assert.equal(t.errors.length,0);
+  w.installationRoot=null;t.ev('refresh()');await settle();
+  assert.equal(t.$('skill-copy').disabled,false);assert.equal(t.$('skill-prompt').value,prompt);
+});
+
+test('global roles support custom edits, toggles, delete and preserve drafts on errors and tab changes', async () => {
+  const role={id:'coder',name:'编码',enabled:true,description:'实现业务代码',provider:'claude',model:'sonnet',effort:'medium',instructions:'按任务实现',constraints:['不修改测试'],deliverables:['改动说明']};
+  const w=newWorld({});w.roles={version:1,revision:'r1',roles:[role,{...role,id:'tester',name:'测试'}]};
+  w.models=()=>({status:'ok',models:[{id:'sonnet',name:'Sonnet',selectable:true,effort:{known:true,supported:true,levels:['low','medium','high'],default:'medium'}}],default:{model:'sonnet',effort:'medium'}});
+  w.roleAction=body=>{
+    assert.equal(body.revision,w.roles.revision);
+    if(body.role?.name==='失败')return respond({error:'配置已更新，请刷新'},400);
+    if(body.action==='delete')w.roles.roles=w.roles.roles.filter(r=>r.id!==body.id);
+    else {const index=w.roles.roles.findIndex(r=>r.id===body.role.id);if(index<0)w.roles.roles.push(body.role);else w.roles.roles[index]=body.role;}
+    w.roles.revision+='x';return respond(w.roles);
+  };
+  const t=await boot(w).ready();assert.equal(t.calls.some(c=>c.path==='/api/roles'),false);
+  t.click(t.$('settings-open'));t.click(t.$('settings-tab-roles'));await settle();
+  assert.match(t.$('roles-list').textContent,/编码/);assert.match(t.$('roles-list').textContent,/测试/);
+  t.click(t.$('role-new'));t.$('role-id').value='docs';t.$('role-name').value='文档';
+  await settle();
+  t.$('role-description').value='维护文档';t.$('role-instructions').value='按任务更新文档';
+  t.click(t.$('settings-tab-service'));t.click(t.$('settings-tab-roles'));await settle();assert.equal(t.$('role-name').value,'文档');
+  t.$('role-form').dispatchEvent(new t.window.Event('submit',{bubbles:true,cancelable:true}));await settle();
+  assert.equal(w.roles.roles.find(r=>r.id==='docs').name,'文档');
+  t.click(t.$('role-toggle-docs'));await settle();assert.equal(w.roles.roles.find(r=>r.id==='docs').enabled,false);
+  t.click(t.$('role-open-docs'));await settle();assert.equal(t.$('role-id').disabled,true);t.$('role-name').value='失败';
+  t.$('role-form').dispatchEvent(new t.window.Event('submit',{bubbles:true,cancelable:true}));await settle();
+  assert.match(t.$('roles-feedback').textContent,/配置已更新/);assert.equal(t.$('role-name').value,'失败');
+  t.click(t.$('role-delete'));await settle();assert.equal(w.roles.roles.some(r=>r.id==='docs'),false);
+  t.click(t.$('role-open-coder'));assert.equal(t.$('role-delete').hidden,true);
+  assert.equal(t.calls.some(c=>c.path==='/api/models'&&(c.post||c.query.refresh)),false);assert.equal(t.errors.length,0);
+});
+
+test('role model selects follow provider catalogs and effort, reject missing models and ignore stale responses', async () => {
+  const role={id:'coder',name:'编码',enabled:true,description:'编码',provider:'claude',model:'sonnet',effort:'medium',instructions:'实现',constraints:[],deliverables:[]};
+  const w=newWorld({});w.roles={version:1,revision:'r',roles:[role]};
+  const claude={status:'ok',models:[{id:'sonnet',name:'Sonnet',selectable:true,effort:{known:true,supported:true,levels:['low','medium','high'],default:'medium'}},{id:'haiku',name:'Haiku',selectable:true,effort:{known:true,supported:false,levels:[],default:null}}],default:{model:'sonnet',effort:'medium'}};
+  const kiro={status:'ok',models:[{id:'kiro-model',name:'Kiro Model',selectable:true,effort:{known:true,supported:true,levels:['low','high'],default:'high'}}],default:{model:'kiro-model',effort:'high'}};
+  w.models=q=>q.get('provider')==='claude'?claude:kiro;
+  const t=await boot(w).ready();t.click(t.$('settings-open'));t.click(t.$('settings-tab-roles'));await settle();
+  t.click(t.$('role-open-coder'));await settle();assert.equal(t.$('role-model').tagName,'SELECT');assert.equal(t.$('role-model').value,'sonnet');
+  assert.deepEqual([...t.$('role-model').options].filter(o=>!o.disabled).map(o=>o.value),['sonnet','haiku']);
+  const change=(id,value)=>{t.$(id).value=value;t.$(id).dispatchEvent(new t.window.Event('change',{bubbles:true}));};
+  change('role-model','haiku');assert.equal(t.$('role-effort').value,'');assert.equal(t.$('role-effort').disabled,true);
+  change('role-provider','kiro');await settle();assert.equal(t.$('role-model').value,'kiro-model');assert.equal(t.$('role-effort').value,'high');
+  assert.deepEqual([...t.$('role-effort').options].map(o=>o.value),['low','high']);
+  let resolveOld;change('role-provider','claude');await settle();
+  w.models=q=>q.get('provider')==='kiro'?new Promise(r=>resolveOld=r):claude;
+  change('role-provider','kiro');change('role-provider','claude');await settle();resolveOld(kiro);await settle();
+  assert.equal(t.$('role-provider').value,'claude');assert.equal(t.$('role-model').value,'sonnet');
+  role.model='removed-model';t.click(t.$('role-open-coder'));await settle();
+  assert.equal(t.$('role-model').value,'');assert.equal(t.$('role-save').disabled,true);assert.match(t.$('role-model-note').textContent,/不在.*列表/);
+  w.models=()=>({status:'error',models:[],error:'请先连接 CLI'});change('role-provider','kiro');await settle();
+  assert.equal(t.$('role-model').disabled,true);assert.equal(t.$('role-save').disabled,true);assert.match(t.$('role-model-note').textContent,/连接/);
+  assert.equal(t.calls.some(c=>c.path==='/api/models'&&(c.post||c.query.refresh)),false);assert.equal(t.errors.length,0);
+});
+
+test('one cleanup includes ended Claude and Kiro tasks and refreshes conversation history', async () => {
+  const w=newWorld({});w.cleanupOverview={groups:[],totals:{conversations:2,pending:3,running:1,needs_review:0,unknown:0,cleaned:0}};
+  w.cleanupAction=body=>{assert.equal(body.scope,'all');w.cleanupOverview.totals.pending=0;return respond({cleaned:3,skipped:1,errors:0,conversations:[]});};
+  const t=await boot(w).ready();t.click(t.$('settings-open'));t.click(t.$('settings-tab-storage'));await settle();
+  assert.match(t.$('settings-page-storage').textContent,/Claude 和 Kiro/);
+  assert.match(t.$('temp-title').parentElement.textContent,/结果、日志/);
+  assert.equal(t.$('temp-all').disabled,false);const reads=t.calls.filter(c=>c.path==='/api').length;
+  t.click(t.$('temp-all'));await settle();
+  assert.match(t.$('temp-feedback').textContent,/已清理 3 轮/);assert.match(t.$('temp-feedback').textContent,/项目代码和测试脚本保留/);
+  assert.doesNotMatch(t.$('temp-feedback').textContent,/历史对话和日志保留/);
+  assert.equal(t.$('temp-all').disabled,true);assert.ok(t.calls.filter(c=>c.path==='/api').length>reads);
+  assert.equal(t.errors.length,0);
+});
+
+test('role identity is visible and role continuation locks model controls', async () => {
+  const c=conv('coding',[]);Object.assign(c,{role_id:'coder',role_name:'编码',provider:'claude',config:{model:'sonnet',effort:'medium',source:'role'}});
+  const t=await boot(newWorld({coding:c})).ready();await t.openConv('coding');
+  assert.match(t.document.querySelector('.run').textContent,/编码/);
+  assert.match(t.$('subtitle').textContent,/编码/);assert.equal(t.$('model-select').disabled,true);
+  c.role_error='角色已停用';await t.poll();assert.match(t.$('composer-hint').textContent,/角色已停用/);
+});
+
+test('active task stops through dedicated endpoint and diagnostic is copyable', async () => {
+  const c=conv('active',[],'running');c.runs[0].diagnostic={category:'permission',message:'工具权限不足',next_step:'授权后继续',detail:'Bash denied'};
+  const w=newWorld({active:c});w.taskStop=payload=>{assert.equal(payload.run,'r-active');c.status='cancelled';return respond({stopped:true})};
+  const t=await boot(w).ready();await t.openConv('active');
+  assert.equal(t.$('task-stop').hidden,false);t.click(t.$('task-stop'));await settle();
+  assert.equal(t.calls.filter(c=>c.path==='/api/tasks/stop').length,1);
+  t.click(t.$('diagnostics-copy'));await settle();assert.match(t.copied.at(-1),/Bash denied/);
+});
+
+test('Claude default configuration submits model and effort as a pair', async () => {
+  const w=newWorld({});w.connections={default_provider:'claude',providers:[{id:'claude',name:'Claude Code',connected:true,available:true,status:'connected',defaults:{model:'one',effort:'high'}}]};
+  w.models=()=>({provider:'claude',status:'ok',models:[{id:'one',name:'One',selectable:true,effort:{known:true,supported:true,levels:['low','medium','high'],default:'medium'}}],default:{model:'one',effort:'high',available:true}});
+  w.connectionAction=payload=>{assert.equal(payload.action,'defaults');assert.equal(payload.model,'one');assert.equal(payload.effort,'high');return respond({ok:true,...w.connections})};
+  const t=await boot(w).ready();t.click(t.$('settings-open'));await settle();t.click(t.$('cli-card-open-claude'));await settle();
+  assert.equal(t.$('cli-default-model-claude').value,'one');assert.equal(t.$('cli-default-effort-claude').value,'high');
+  t.click(t.$('cli-defaults-save-claude'));await settle();assert.ok(t.calls.some(c=>c.body?.action==='defaults'));
+});
+
+test('switching Claude conversations invalidates model requests and preserves explicit no-effort roles', async () => {
+ const a=conv('a',[]),b=conv('b',[]);a.provider=b.provider='claude';
+ const w=newWorld({a,b});w.default_provider='claude';w.providers=[{id:'claude',name:'Claude Code',available:true}];
+ w.models=()=>({provider:'claude',status:'ok',models:[{id:'one',name:'One',selectable:true,effort:{known:true,supported:true,source:'cli-options',levels:['low','high'],default:'high'}}],default:{model:'one',effort:'high',available:true}});
+ const t=await boot(w).ready();await t.openConv('a');const before=t.calls.filter(c=>c.path==='/api/models').length;
+ await t.openConv('b');assert.ok(t.calls.filter(c=>c.path==='/api/models').length>before);
+ t.ev("roleModels=[{id:'one',selectable:true,effort:{known:true,supported:true,source:'cli-options',levels:['low','high']}}];$('role-model').replaceChildren(new Option('One','one'));roleModelsLoading=false;roleEffortOptions(null)");
+ assert.equal(t.$('role-effort').value,'');assert.equal(t.$('role-save').disabled,false);
 });
 
 // ---- run ----------------------------------------------------------------------------------------------------

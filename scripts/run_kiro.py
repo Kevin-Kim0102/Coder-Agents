@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """Run Kiro with the user's fixed model and effort; refuse known fallback paths."""
 import argparse
+import math
+import agent_tasks
+import agent_roles
 import json
 import os
 from pathlib import Path
@@ -18,6 +21,7 @@ import signal
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import kiro_catalog
+import kiro_acp
 import kiro_temp
 
 # Defaults used when the caller passes no explicit selection (Codex delegation always uses these).
@@ -65,8 +69,7 @@ def locate_node(environment):
     if current and RELAY.exists() and Path(current).resolve() == RELAY.resolve():
         current = environment.get("KIRO_RELAY_REAL_NODE")  # nested run: the outer runner already swapped it
     if not current:
-        data = Path(environment.get("XDG_DATA_HOME") or Path.home() / ".local/share")
-        current = str(data / "kiro-cli" / "node")
+        current = str(kiro_acp.data_directory(environment) / "node")
     if not os.access(current, os.X_OK):
         raise OSError(f"Cannot find Kiro's Node binary ({current}); set KIRO_KAS_NODE_PATH to it. "
                       "The task prompt was NOT sent.")
@@ -148,7 +151,8 @@ class RunRecord:
                       "title": title or prompt.strip().splitlines()[0][:80],
                       "effort": selection["effort"], "selection": selection["source"],
                       "status": "checking", "started_at": datetime.now(timezone.utc).isoformat(),
-                      **kiro_temp.my_identity()}
+                      **kiro_temp.my_identity(), "runner_identity": agent_tasks.process_identity(os.getpid()),
+                      **agent_roles.identity()}
         if resume_id:
             self.state.update(resume_id=resume_id, session_id=resume_id)
         self.update()
@@ -197,7 +201,8 @@ def sync_startup(record, status_file, seen):
         record.update(startup=status.get("state") or "unknown", prompt_forwarded=view[1])
 
 
-def execute(binary, cwd, prompt, environment, check, record):
+def execute(binary, cwd, prompt, environment, check, record, timeout=3600):
+    deadline = time.monotonic() + timeout
     selection = record.selection
     model, effort = selection["model"], selection["effort"]
     settings = temp_settings()
@@ -213,7 +218,7 @@ def execute(binary, cwd, prompt, environment, check, record):
     record.diagnostic(f"Managed temp directory: {temp['path']} (kept until accepted; see kiro_temp.py)\n")
     catalog = subprocess.run(
         [binary, "chat", "--v3", "--list-models", "--format", "json"],
-        cwd=cwd, env=environment, capture_output=True, text=True, timeout=60,
+        cwd=cwd, env=environment, capture_output=True, text=True, timeout=min(60, max(.01, deadline - time.monotonic())),
     )
     if catalog.returncode:
         record.diagnostic(catalog.stderr + "Kiro model query failed; coding was not started.\n")
@@ -241,9 +246,10 @@ def execute(binary, cwd, prompt, environment, check, record):
         task.write(prompt)
         task.seek(0)
         process = subprocess.Popen(command, cwd=cwd, env=environment, stdin=task,
-                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True)
         child = kiro_temp.read_stat(process.pid) or {}
-        record.update(status="running", pid=process.pid, pid_start_ticks=child.get("start"))
+        record.update(status="running", pid=process.pid, pid_start_ticks=child.get("start"),
+                      child_identity=agent_tasks.process_identity(process.pid))
         selection_failed = False
         seen = [None]
         decoders = {"events.jsonl": codecs.getincrementaldecoder("utf-8")("replace"),
@@ -255,8 +261,10 @@ def execute(binary, cwd, prompt, environment, check, record):
                 selector.register(process.stdout, selectors.EVENT_READ, ("events.jsonl", sys.stdout))
                 selector.register(process.stderr, selectors.EVENT_READ, ("stderr.log", sys.stderr))
                 while selector.get_map():
+                    if time.monotonic() >= deadline:
+                        raise TimeoutError("Kiro task exceeded --timeout; inspect logs before retrying")
                     sync_startup(record, status_file, seen)
-                    for key, _ in selector.select(timeout=1):
+                    for key, _ in selector.select(timeout=min(1, max(.01, deadline - time.monotonic()))):
                         name, output = key.data
                         block = os.read(key.fileobj.fileno(), 65536)
                         text = decoders[name].decode(block, final=not block)
@@ -293,19 +301,15 @@ def execute(binary, cwd, prompt, environment, check, record):
                 process.wait()
                 result = 1
         except BaseException:
-            process.terminate()
-            try:
-                process.wait(timeout=10)
-            except subprocess.TimeoutExpired:
-                process.kill()
-                process.wait()
-            status = read_status(status_file, settle=12)
+            agent_tasks.stop_process_group(process)
+            status = read_status(status_file, settle=.2)
             record.update(prompt_forwarded=bool(status.get("prompt_forwarded")))
             record.diagnostic("The task prompt " + ("had already been forwarded; the task may have partly run.\n"
                               if status.get("prompt_forwarded") else "was never forwarded to Kiro.\n"
                               if status.get("final") else "may or may not have been forwarded; inspect the working tree.\n"))
             raise
         finally:
+            agent_tasks.stop_process_group(process)
             process.stdout.close()
             process.stderr.close()
         return judge(record, read_status(status_file, settle=12), selection_failed, result)
@@ -344,6 +348,8 @@ def judge(record, status, selection_failed, result):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--cwd", required=True, type=Path)
+    parser.add_argument("--cli-path", help="Executable path from saved CLI connection")
+    parser.add_argument("--timeout", type=float, default=3600, help="Overall task deadline in seconds")
     parser.add_argument("--check", action="store_true", help="Check availability and run a tool-free smoke request")
     parser.add_argument("--run-dir", type=Path, help="New directory for task, live events, diagnostics, and status")
     parser.add_argument("--agent-id", help="Stable identity for multiple turns of one subagent")
@@ -354,6 +360,8 @@ def main():
     parser.add_argument("--effort", help="Explicit effort level for the selected model")
     parser.add_argument("--no-effort", action="store_true", help="The selected model has no effort setting: none is passed")
     args = parser.parse_args()
+    if not math.isfinite(args.timeout) or args.timeout <= 0:
+        parser.error("--timeout must be positive and finite")
     selection = {"model": MODEL, "effort": EFFORT, "source": "default"}
     if args.model or args.effort or args.no_effort:
         if args.no_effort and args.effort:
@@ -369,23 +377,24 @@ def main():
     cwd = args.cwd.expanduser().resolve(strict=True)
     if not cwd.is_dir():
         parser.error("--cwd must be a directory")
-    binary = shutil.which("kiro-cli")
-    if not binary:
-        parser.error("kiro-cli is not on PATH")
+    from cli_connections import runner_executable
+    binary = runner_executable("kiro", args.cli_path)
     prompt = ("Reply only KIRO_READY. Do not call tools or read files." if args.check else sys.stdin.read())
     if not prompt.strip():
         parser.error("Provide a non-empty task on stdin")
     environment = kiro_environment()
+    environment["KIRO_CLI"] = binary
 
     run_id = datetime.now().strftime("%Y%m%d-%H%M%S-") + uuid.uuid4().hex[:8]
     directory = args.run_dir.expanduser().resolve() if args.run_dir else cwd / "work" / "kiro-runs" / run_id
     record = RunRecord(cwd, prompt, directory, args.agent_id, args.resume_id, args.title, selection)
+    agent_tasks.register(cwd, directory.parent)
     def interrupt_run(signum, frame):
         raise KeyboardInterrupt
     signal.signal(signal.SIGTERM, interrupt_run)
     result = 1
     try:
-        result = execute(binary, cwd, prompt, environment, args.check, record)
+        result = execute(binary, cwd, prompt, environment, args.check, record, args.timeout)
     except KeyboardInterrupt:
         record.diagnostic("Kiro run interrupted.\n")
         result = 130

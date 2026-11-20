@@ -2,18 +2,31 @@
 
 ## 产品方向
 
-Coder-Agents 的方向是通用的本地 CLI Agent 可视化面板：Python 标准库服务 + 浏览器页面 + 本机已安装的 CLI Agent。后续计划接入 Claude CLI 等其他 CLI。
+Coder-Agents 的方向是通用的本地 CLI Agent 可视化面板：Python 标准库服务 + 浏览器页面 + 本机已安装的 CLI Agent。已接入 Kiro CLI 与 Claude Code。
 
-**现状：只接入了 Kiro CLI。** 目前没有 provider 抽象，面板没有选择后端的界面，代码里的 `scripts/kiro_*.py`、数据目录 `~/.local/state/kiro-panel/` 等命名都是 Kiro 专用的。下文“架构”描述的是当前真实的 Kiro 链路。
+## Provider 架构
 
-## 未来方向（计划，均未实现）
+```text
+Codex skill / 终端 → coder_agents run --provider claude|kiro
+浏览器 → watch_kiro.py → 按对话 provider 选择 runner
+                            ├─ run_claude.py → claude -p（stream-json）
+                            └─ run_kiro.py → ACP relay → kiro-cli
+```
 
-- 最小改动路径：先在 runner 一层引入后端接口（启动、续聊、事件流、模型目录各自一个实现），`run_kiro.py` 与 `kiro_acp*.py`、`kiro_catalog.py`、`kiro_usage.py` 归入 Kiro 实现；面板服务与 `viewer.html` 只依赖接口，再给任务和对话加一个后端字段与选择入口；每个任务已有独立的 `work/kiro-runs/<id>/` 目录，可沿用同一目录结构。
-- 新后端的事件格式、模型/强度、额度能力各不相同，面板需要按后端声明的能力显示相应控件。
-- 固定模型 `claude-sonnet-5.5` 是当前 Kiro runner 的默认值，不应套用到其他后端。
-- 数据目录名统一（去掉 `kiro-panel`）同样只是计划，需要带迁移步骤。
+`scripts/agent_providers.py` 提供后端元数据和 Claude 模型配置。`scripts/cli_connections.py` 管理显式连接、登录检查和私有配置持久化；读取配置不运行 CLI。`run_agent.py` 分发 CLI 调用；通过进程替换把信号直接交给 runner。`run_claude.py` 独立处理 Claude 的执行、会话、结果判定和日志，不经过 Kiro ACP。Kiro 模型与额度服务延迟初始化，Claude-only 使用不探测 Kiro。
 
-## 当前架构（仅 Kiro）
+每轮记录 provider，已有 Kiro 记录缺少字段时按 Kiro 解释。面板后端选择只作用于新对话，续聊按保存的 provider 和 cwd 路由。CLI 续聊需要显式传原 provider 和原生 session ID。数据继续保存在 `work/kiro-runs/`，不迁移旧历史。
+
+Claude 保留 `raw-events.jsonl`，并把完整 assistant/tool/result 消息转换为既有面板事件格式。由于未启用 partial messages，文本以完整消息更新，工具调用仍实时显示。Claude 续聊事件是当前调用的输出，前端不会套用 Kiro 的历史重放过滤规则。成功需要零退出码、成功 result 事件、没有权限拒绝且输出格式完整；退出码为零而缺失结果仍判失败。
+
+Claude 用独立 POSIX 进程组运行。取消和超时先发 SIGTERM，必要时升级 SIGKILL，并写入终态。默认 `dontAsk`，CLI 可显式选 acceptEdits/plan 或允许特定工具，不加入 bypassPermissions。不会自动重试任务；Claude CLI 自身可能重试网络请求。CLI 的原生会话存储由 Claude 管理。
+
+Claude 模型目录来自当前生效的 API 地址，主动读取并按请求配置隔离缓存。`claude_catalog.py` 解析 CLI 配置并查询有界、禁止重定向的模型接口；思考强度选项来自 CLI 规则，实际支持由执行时校验。只支持可复用 API Key/Auth Token 的目录认证，不读取私有订阅凭据。产品默认模型和强度保存在连接配置中，角色调用仍以最新角色配置为准。用量和报告费用来自当前 result 事件；`claude_usage.py` 可主动从当前 Claude API 地址的 `/v1/usage` 读取 Sub2API 兼容额度，按配置指纹隔离缓存，不固定域名。未返回重置时间时不推算；不支持协议的 API 明确提示。Kiro 的实际模型目录、强度门禁和额度接口保留原行为。
+
+`agent_tasks.py` 共用任务进程身份、异常恢复、单任务停止及全局日志来源登记。两个 runner 都记录启动周期、进程出生标识和独立 CLI 进程组，并支持整体执行超时。`tasks list/show/stop` 与面板共用能力，身份不确定时不误杀其他进程。`agent_diagnostics.py` 统一错误分类及有界脱敏摘要。任务只记录角色 ID/名称，不保留角色配置快照；面板续聊重新读取角色并检查后端是否一致。
+
+## Kiro 内部架构
+
 
 ```
 浏览器 ──HTTP(127.0.0.1:固定端口)──> scripts/watch_kiro.py（面板服务，Python 标准库）
@@ -69,10 +82,25 @@ Coder-Agents 的方向是通用的本地 CLI Agent 可视化面板：Python 标�
 
 ## 已知限制
 
-- 仅 Linux；服务安装依赖 systemd 用户实例。
+- 前台面板与 Claude runner 支持 macOS / Linux；服务安装仍依赖 Linux systemd 用户实例。
+- 设置页统一清理 Claude/Kiro 非运行任务的结果、日志和受管理临时目录，不要求验收或 Linux `/proc` 检查；checking/running 跳过，保留目录边界检查。Claude 新任务也设置 TMPDIR/TMP/TEMP，旧任务可清理已有日志。独立 kiro_temp CLI 的验收行为保持兼容。
 - 面板只读读取 Codex 私有状态文件（非公开接口，格式可能变化） `~/.codex/.codex-global-state.json` 来列出 Codex 项目；文件缺失时只显示“其他对话”和已注册项目，不影响使用。
 - “其他对话”的日期目录沿用 `~/Documents/Codex/<日期>`（日期按香港时区），可用配置项 `daily_base` 修改。
 
 ## 打包说明
 
 除源码克隆外，也支持 `pip install -e .` 和普通安装，但文档主路径是源码克隆。wheel 内含 `coder_agents/_runtime/{scripts,assets,examples}`，由 `setup.py` 在从 sdist 构建时打入，源码树缺文件时构建失败；`MANIFEST.in` 精确列出 sdist 内容（排除 work、缓存、个人配置）。安装后用 `python3 -m coder_agents selfcheck` 验证。
+
+## CLI 连接设置
+
+浏览器 GET `/api/connections` 读取连接记录；POST `/api/connections` 使用现有 cookie、同源校验和 JSON 限制。支持 connect/disconnect/default/test/catalog/pause/start。连接操作为单并发，重复检查返回 409。路径输入是可执行文件绝对路径，不通过 shell，也不接受命令参数。
+
+Connect 执行 `--version` 并识别产品；Claude Code 使用 `auth status --json` 检查 loggedIn，Kiro 使用 `whoami` 的退出状态。未登录时，仅显式 Connect 操作允许打开图形终端运行官方登录命令，并在最多 180 秒内轮询认证状态；macOS 使用 Terminal，Linux 使用可用的图形终端。登录凭据仅由 CLI 保存。检查有超时、stdin 关闭，失败不保存候选、不泄露认证输出；成功原子替换权限 0600 的 connections.json，不保存 token。路径保留符号链接，不固化升级器目标路径。
+
+面板默认后端只来自保存的连接；既有 config.json 中的 default_provider 不再自动启用 CLI。未连接时历史可读，发送与模型/额度服务阻断。新任务通过 `--cli-path` 传入已保存路径，Kiro 元数据进程同时使用 KIRO_CLI，避免短 PATH 选错二进制。
+
+已连接时普通页面读取同样不启动 CLI：Kiro 模型目录仅从缓存或固定默认选择返回，账户额度仅返回缓存。Connect 成功后自动读取模型目录；设置中的读取目录可重试，额度刷新仍是显式操作。目录失败保留已成功的连接，并返回单独的重试提示。Kiro 运行时目录遵循平台约定：macOS 使用 `~/Library/Application Support/kiro-cli`，Linux 使用 `~/.local/share/kiro-cli`，显式 XDG_DATA_HOME 和运行时覆盖配置优先。
+
+Test 为独立、显式的模型调用，在隔离临时目录执行 runner --check 并关闭工具。Claude 有 30 秒内部超时，外层最多等待 40 秒。它与连接状态独立，不因页面打开或连接成功而自动执行。CLI 原生登录状态可以在连接后发生变化，保存状态只表示上次检查成功。
+
+CLI 连接记录继续用 enabled 表示是否已连接，新增 paused 标识暂停。暂停时 connected 保持 true、available=false，executable 拒绝新任务与 PATH 回退；启动检查路径后恢复使用，已有子进程不受影响。没有保存默认后端时终端调度使用 Claude。配置页为每个 provider 分开保存模型列表和请求反馈，打开时仅读取缓存，显式获取才刷新；概览不显示操作结果。

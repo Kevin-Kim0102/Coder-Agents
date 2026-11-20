@@ -7,7 +7,7 @@ import shutil
 import subprocess
 import sys
 
-from . import ROOT, SCRIPTS, __version__, legacy, missing_resources, service
+from . import ROOT, SCRIPTS, __version__, legacy, missing_resources, service, panel_lifecycle
 
 LEGACY_SETTINGS = Path.home() / ".codex/skills/kiro-coding/settings.json"  # the old install's location, read only on migrate
 SETTINGS_KEYS = {"proxy_defaults", "temp"}
@@ -47,8 +47,9 @@ def cmd_status(args):
     settings = settings_file()
     active, stale = service.find_active_tasks(config_file)
     print(f"Coder-Agents {__version__}（源码目录 {ROOT}）")
-    print(f"平台: {sys.platform}（本版本仅支持 Linux）  Python: {sys.version.split()[0]}")
-    print(f"kiro-cli: {shutil.which('kiro-cli') or str(Path.home() / '.local/bin/kiro-cli') + '（未在 PATH 中找到，将回退到此处）'}")
+    print(f"平台: {sys.platform}（前台面板支持 macOS / Linux；systemd 服务仅 Linux）  Python: {sys.version.split()[0]}")
+    for binary in ("kiro-cli", "claude"):
+        print(f"{binary}: {shutil.which(binary) or '未在 PATH 中找到'}")
     print(f"设置文件: {settings}（{'存在' if settings.is_file() else '不存在，使用默认值'}）")
     print(f"面板配置: {config_file}（{'存在' if config else '未找到' if not problem else problem}）")
     if config:
@@ -64,7 +65,7 @@ def cmd_status(args):
 
 
 def cmd_serve(args):
-    """Foreground server without systemd. Creates a config on first use (explicit, mode 0600)."""
+    """Foreground or explicitly requested background server; no system service installed."""
     if args.port is not None and not 1024 <= args.port <= 65535:
         print("--port 必须在 1024-65535 之间", file=sys.stderr)
         return 2
@@ -88,6 +89,14 @@ def cmd_serve(args):
     elif args.port and args.port != config["port"]:
         print(f"现有配置端口为 {config['port']}，不会改写；请去掉 --port", file=sys.stderr)
         return 1
+    config_file = config_file.resolve()
+    if args.command == "start":
+        try:
+            print(panel_lifecycle.start_panel(config_file, config))
+            return 0
+        except (OSError, ValueError) as error:
+            print("启动失败：" + str(error), file=sys.stderr)
+            return 1
     if service.port_in_use(config["port"]):
         print(f"端口 127.0.0.1:{config['port']} 已有服务在监听，不再启动第二个服务。", file=sys.stderr)
         return 1
@@ -215,10 +224,11 @@ def cmd_selfcheck(args):
     if relay.is_file() and not os.access(relay, os.X_OK):
         problems.append(f"{relay} 不可执行（runner 以它作为 KIRO_KAS_NODE_PATH）")
     if not problems:
-        done = subprocess.run([sys.executable, str(SCRIPTS / "run_kiro.py"), "--help"], capture_output=True, text=True,
-                              timeout=60, env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"})
-        if done.returncode != 0:
-            problems.append("run_kiro.py --help 失败：" + done.stderr.strip()[-300:])
+        for script in ("run_kiro.py", "run_claude.py", "run_agent.py"):
+            done = subprocess.run([sys.executable, str(SCRIPTS / script), "--help"], capture_output=True, text=True,
+                                  timeout=60, env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"})
+            if done.returncode != 0:
+                problems.append(script + " --help 失败：" + done.stderr.strip()[-300:])
     for problem in problems:
         print("失败：" + problem, file=sys.stderr)
     if not problems:
@@ -226,16 +236,65 @@ def cmd_selfcheck(args):
     return 1 if problems else 0
 
 
+def cmd_roles(args):
+    sys.path.insert(0, str(SCRIPTS))
+    from agent_roles import RoleStore
+    try:
+        store = RoleStore()
+        if args.action == "show":
+            data = store.get(args.id)
+        else:
+            data = store.snapshot()
+            if not args.all:
+                data["roles"] = [r for r in data["roles"] if r["enabled"]]
+        print(json.dumps(data, ensure_ascii=False, indent=2))
+        return 0
+    except (ValueError, OSError) as error:
+        print("读取角色失败：" + str(error), file=sys.stderr)
+        return 1
+
+
+def cmd_tasks(args):
+    sys.path.insert(0, str(SCRIPTS))
+    import agent_tasks
+    try:
+        if args.action == "list":
+            data = agent_tasks.list_tasks()
+        elif args.action == "stop":
+            data = agent_tasks.stop(args.run_dir)
+        else:
+            data = agent_tasks.read(args.run_dir)
+        print(json.dumps(data, ensure_ascii=False, indent=2))
+        return 0
+    except (OSError, ValueError) as error:
+        print("任务操作失败：" + str(error), file=sys.stderr)
+        return 1
+
+
 def build_parser():
     parser = argparse.ArgumentParser(prog="python3 -m coder_agents",
-                                     description="Coder-Agents：本机 Kiro 编码面板（浏览器使用，仅支持 Linux）。")
+                                     description="Coder-Agents：本机 Kiro / Claude Code 编码面板（macOS / Linux；systemd 仅 Linux）。")
     parser.add_argument("--version", action="version", version=f"coder-agents {__version__}")
     sub = parser.add_subparsers(dest="command", metavar="<命令>")
     sub.add_parser("status", help="只读：显示路径、配置、端口、活跃任务与服务单元状态")
     serve = sub.add_parser("serve", help="前台启动面板（无需 systemd），用浏览器打开 http://127.0.0.1:<端口>/")
     serve.add_argument("--port", type=int, help="仅在首次创建配置时使用，默认 %d" % service.DEFAULT_PORT)
-    sub.add_parser("run", help="运行一个 Kiro 任务，参数原样传给 scripts/run_kiro.py（如 --cwd DIR --check）",
+    start = sub.add_parser("start", help="后台启动面板，已运行时复用，确认就绪后返回地址")
+    start.add_argument("--port", type=int, help="仅在首次创建配置时使用，默认 %d" % service.DEFAULT_PORT)
+    sub.add_parser("run", help="运行 CLI 任务：--role ID 或 --provider kiro|claude --cwd DIR（默认 Claude）",
                    add_help=False)
+    tasks = sub.add_parser("tasks", help="查询任务、读取结果或停止单个任务")
+    task_sub = tasks.add_subparsers(dest="action", required=True)
+    task_sub.add_parser("list", help="列出所有已登记任务")
+    for action in ("show", "stop"):
+        task = task_sub.add_parser(action)
+        task.add_argument("--run-dir", required=True, type=Path, help="目标任务的运行记录目录")
+    roles = sub.add_parser("roles", help="读取最新全局角色配置（JSON），不会启动 CLI")
+    role_sub = roles.add_subparsers(dest="action", required=True)
+    role_list = role_sub.add_parser("list", help="列出启用的角色")
+    role_list.add_argument("--all", action="store_true", help="包含停用角色")
+    role_show = role_sub.add_parser("show", help="读取单个角色")
+    role_show.add_argument("id")
     sub.add_parser("register", help="向运行中的面板注册项目，参数传给 scripts/watch_kiro.py（--cwd DIR [--root DIR]）",
                    add_help=False)
     sub.add_parser("stop", help="关闭面板 Python 服务（不影响任务与历史）")
@@ -260,15 +319,16 @@ def build_parser():
 def main(argv=None):
     argv = list(sys.argv[1:] if argv is None else argv)
     if argv[:1] == ["run"]:
-        return passthrough("run_kiro.py", argv[1:])
+        # Replace this process so SIGTERM reaches the runner, which owns child cleanup.
+        os.execv(sys.executable, [sys.executable, str(SCRIPTS / "run_agent.py"), *argv[1:]])
     if argv[:1] == ["register"]:
         return passthrough("watch_kiro.py", argv[1:])
     parser = build_parser()
     args = parser.parse_args(argv)
     if args.command == "stop":
         return passthrough("watch_kiro.py", ["--stop", "--config", str(service.config_path())])
-    handler = {"status": cmd_status, "serve": cmd_serve, "settings": cmd_settings, "service": cmd_service,
-               "legacy": cmd_legacy, "selfcheck": cmd_selfcheck}.get(args.command)
+    handler = {"status": cmd_status, "serve": cmd_serve, "start": cmd_serve, "settings": cmd_settings, "service": cmd_service,
+               "legacy": cmd_legacy, "selfcheck": cmd_selfcheck, "roles": cmd_roles, "tasks": cmd_tasks}.get(args.command)
     if handler is None:
         parser.print_help()
         return 0

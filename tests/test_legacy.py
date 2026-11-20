@@ -174,6 +174,13 @@ class UnlinkTests(Base):
 
 
 class ServiceHardeningTests(Base):
+    def setUp(self):
+        super().setUp()
+        from unittest import mock
+        platform = mock.patch.object(service.sys, "platform", "linux")
+        platform.start()
+        self.addCleanup(platform.stop)
+
     def test_apply_install_rechecks_tasks_and_registry(self):
         from unittest import mock
         with mock.patch.dict(os.environ, self.env, clear=True), mock.patch.dict(os.environ, {"XDG_CONFIG_HOME": str(self.home / "cfg")}):
@@ -260,7 +267,8 @@ class PackagingTests(unittest.TestCase):
                         "coder_agents/_runtime/assets/vendor/purify.min.js", "coder_agents/_runtime/assets/vendor/marked.LICENSE.txt",
                         "coder_agents/_runtime/examples/settings.example.json"):
                 self.assertIn(rel, names)
-            self.assertEqual(len([n for n in names if n.startswith("coder_agents/_runtime/scripts/") and n.endswith(".py")]), 8)
+            from coder_agents import MODULES
+            self.assertEqual(len([n for n in names if n.startswith("coder_agents/_runtime/scripts/") and n.endswith(".py")]), len(MODULES))
             mode = archive.getinfo("coder_agents/_runtime/scripts/kiro_acp_relay.py").external_attr >> 16
             self.assertTrue(mode & 0o111, "relay must stay executable")
             target = Path(self.tmp.name) / "site"
@@ -293,7 +301,8 @@ class PackagingTests(unittest.TestCase):
                     "assets/vendor/dompurify.LICENSE-MPL-2.0.txt", "assets/vendor/README.md", "examples/settings.example.json",
                     "README.md", "THIRD_PARTY_NOTICES.md", "docs/architecture.md", "coder_agents/cli.py", "MANIFEST.in"):
             self.assertIn(rel, names)
-        self.assertEqual(len([n for n in names if n.startswith("scripts/") and n.endswith(".py")]), 8)
+        from coder_agents import MODULES
+        self.assertEqual(len([n for n in names if n.startswith("scripts/") and n.endswith(".py")]), len(MODULES))
         for name in names:
             base = name.rsplit("/", 1)[-1]
             self.assertFalse(name.startswith(("work/", "node_modules/", "tests/")) or "__pycache__" in name or base in

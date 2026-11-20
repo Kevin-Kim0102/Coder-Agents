@@ -20,3 +20,7 @@ so browser developer tools may log a harmless 404 for them.
 
 To update, replace the files with a newer npm release, update the table and hashes, and run
 `python3 -m unittest discover -s tests` and `npm test`.
+
+## Provider marks
+
+`viewer.html` embeds the Claude and Kiro website icons as local SVG symbols (retrieved 2026-11-19 from https://claude.com/icon.svg and https://kiro.dev/icon.svg). These identify the respective CLI providers; marks belong to their owners. No external icon requests are made by the panel.

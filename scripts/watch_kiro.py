@@ -28,6 +28,12 @@ import kiro_catalog
 import kiro_review
 import kiro_temp
 import kiro_usage
+import agent_providers
+import cli_connections
+import agent_roles
+import agent_tasks
+import agent_diagnostics
+import claude_usage
 try:
     from zoneinfo import ZoneInfo
 except ImportError:  # pragma: no cover
@@ -137,6 +143,28 @@ def run_activity(run, now):
     return max((t for t in (timestamp(run.get("finished_at")), timestamp(run.get("started_at"))) if t is not None), default=0.0)
 
 
+def safe_diagnostics(text, state=None):
+    state = state if isinstance(state, dict) else {}
+    secrets = []
+    if state.get("provider") == "claude":
+        try:
+            from claude_catalog import resolve_config
+            for name, value in resolve_config(state.get("cwd")).get("headers", {}).items():
+                if name.lower() in {"authorization", "x-api-key"}:
+                    secrets.extend((value, value.removeprefix("Bearer ")))
+        except (ValueError, OSError):
+            pass
+    clean = agent_diagnostics.redact(text, secrets=secrets)
+    return agent_diagnostics.diagnose(clean, state)
+
+
+def permission_selection(payload, provider):
+    mode = payload.get("permission_mode")
+    if mode is not None and (provider != "claude" or mode not in {"dontAsk", "acceptEdits", "plan"}):
+        raise ValueError("不支持的工具权限设置；不能绕过 CLI 权限")
+    return mode
+
+
 def group_agents(runs, now=None):
     """Conversations of one run source, most recently ACTIVE first (a completion counts as activity)."""
     now = time.time() if now is None else now
@@ -146,7 +174,8 @@ def group_agents(runs, now=None):
         agent = groups.setdefault(agent_id, {"id": agent_id, "title": run.get("title") or run["id"],
                                              "created_at": run.get("started_at"), "turn_count": 0, "activity": 0.0})
         agent.update(status=run.get("status"), updated_at=run.get("started_at", ""),
-                     model=run.get("model"), effort=run.get("effort"), cwd=run.get("cwd"))
+                     model=run.get("model"), effort=run.get("effort"), cwd=run.get("cwd"),
+                     provider=run.get("provider", "kiro"), role_id=run.get("role_id"), role_name=run.get("role_name"))
         agent["turn_count"] += 1
         agent["activity"] = max(agent["activity"], run_activity(run, now))
         if run.get("session_id"):
@@ -316,7 +345,9 @@ def turn_summary(state, events_text):
     exit_code = exit_code if isinstance(exit_code, int) and not isinstance(exit_code, bool) and -1000 <= exit_code <= 1000 else None
     return {"result": result, "exit_code": exit_code, "stop_reason": stop_reason,
             "run_status": run_status, "task_seconds": seconds_between(state.get("started_at"), state.get("finished_at")),
-            "kiro_elapsed_ms": elapsed_ms, "tokens": tokens, "credits": credits, "context_percent": context}
+            "kiro_elapsed_ms": elapsed_ms, "tokens": tokens, "credits": credits, "context_percent": context,
+            "provider": state.get("provider", "kiro"),
+            "cost_usd": finite_amount(state.get("cost_usd")) if state.get("provider") == "claude" else None}
 
 
 def last_context_percent(events_text):
@@ -608,6 +639,7 @@ class Source:
                 continue
             try:
                 state = json.loads(read_local(directory.resolve(), "state.json"))
+                state = agent_tasks.recover(directory, state)
                 state["id"] = directory.name
                 state["agent_id"] = state.get("agent_id") or directory.name
                 if not isinstance(state["agent_id"], str) or not AGENT_ID.fullmatch(state["agent_id"]):
@@ -673,8 +705,8 @@ class Source:
                 return "pending", state
             time.sleep(interval)
 
-    def start_turn(self, text, agent_id=None, cwd=None, selection=None):
-        """Start one Kiro turn. A follow-up always runs in the conversation's recorded directory;
+    def start_turn(self, text, agent_id=None, cwd=None, selection=None, provider="kiro", cli_path=None, permission_mode=None, config_path=None):
+        """Start one CLI turn. A follow-up always runs in the conversation's recorded directory;
         a new conversation runs in `cwd`, which the panel chose from its own catalog, never from the browser."""
         if not isinstance(text, str) or not text.strip():
             raise ValueError("请输入要发送给 subagent 的消息")
@@ -684,10 +716,12 @@ class Source:
             agent = next((item for item in group_agents(runs) if item["id"] == agent_id), None)
             if not agent:
                 raise ValueError("所选 subagent 不存在")
+            if agent.get("provider", "kiro") != provider:
+                raise ValueError("已有对话不能更换后端")
             if any(run["agent_id"] == agent_id and run.get("status") in ACTIVE_STATUSES for run in runs):
                 return 409, {"error": "这个 subagent 正在执行任务，请等待本轮结束后再发送"}
             if not agent.get("session_id"):
-                raise ValueError("这个 subagent 尚未建立 Kiro 会话，请新建 subagent 并重新发送原始任务")
+                raise ValueError("这个 subagent 尚未建立 CLI 会话，请新建 subagent 并重新发送原始任务")
             cwd = agent.get("cwd")
             if not isinstance(cwd, str) or not os.path.isabs(cwd) or not os.path.isdir(cwd):
                 raise ValueError("这个对话原来的工作目录已不存在，无法在原位置继续")
@@ -696,12 +730,23 @@ class Source:
                 raise ValueError("没有可用的项目目录")
             agent_id = "agent-" + uuid.uuid4().hex[:12]
         cwd = str(cwd)
+        role = None
+        if agent and agent.get("role_id"):
+            role, text = agent_roles.continuation(agent["role_id"], provider, text)
+            selection = {"model": role["model"], "effort": role["effort"]}
         self.ensure_root()  # lazily, and only because the user explicitly sent a message
         run_id = datetime.now().strftime("%Y%m%d-%H%M%S-") + uuid.uuid4().hex[:8]
         directory = self.root / run_id
         title = agent["title"] if agent else text.strip().splitlines()[0][:80]
-        command = [sys.executable, str(SKILL / "scripts/run_kiro.py"), "--cwd", cwd,
+        runner = agent_providers.provider(provider)["runner"]
+        if not cli_path and not shutil.which(agent_providers.provider(provider)["binary"]):
+            raise ValueError("找不到后端 CLI：" + provider)
+        command = [sys.executable, str(SKILL / "scripts" / runner), "--cwd", cwd,
                    "--run-dir", str(directory), "--agent-id", agent_id, "--title", title]
+        if cli_path:
+            command += ["--cli-path", cli_path]
+        if permission_mode is not None:
+            command += ["--permission-mode", permission_mode]
         if agent:
             command += ["--resume-id", agent["session_id"]]
         if selection:  # explicit, backend-validated; without it the runner uses its Sonnet 5.5 / medium default
@@ -712,14 +757,23 @@ class Source:
             launch_path.chmod(0o600)
             task.write(text)
             task.seek(0)
+            environment = dict(os.environ)
+            if config_path:
+                environment["CODER_AGENTS_CONFIG"] = str(config_path)
+            for key in ("CODER_AGENTS_ROLE_ID", "CODER_AGENTS_ROLE_NAME"):
+                environment.pop(key, None)
+            if role:
+                environment.update(CODER_AGENTS_ROLE_ID=role["id"], CODER_AGENTS_ROLE_NAME=role["name"])
             process = subprocess.Popen(command, cwd=cwd, stdin=task, stdout=output, stderr=subprocess.STDOUT,
-                                       start_new_session=True)
+                                       env=environment, start_new_session=True)
+        # Reap children even after the HTTP request has returned.
+        threading.Thread(target=process.wait, daemon=True).start()
         deadline = time.monotonic() + 3
         while time.monotonic() < deadline:
             if (directory / "state.json").exists():
                 return 201, {"agent_id": agent_id, "run_id": run_id, "source": self.id}
             if process.poll() is not None:
-                raise ValueError("Kiro 未能启动，请检查本地启动日志 " + str(launch_path))
+                raise ValueError("CLI 未能启动，请检查本地启动日志 " + str(launch_path))
             time.sleep(.05)
         return 202, {"agent_id": agent_id, "run_id": run_id, "source": self.id}
 
@@ -749,12 +803,17 @@ class Panel:
         self.registry = config_path.parent / "projects.json"
         self.catalog = Catalog(codex_state or config.get("codex_state") or CODEX_STATE)
         self.fixture = config.get("fixture") if isinstance(config.get("fixture"), dict) else None
+        self.connections = cli_connections.Connections(config_path.parent / "connections.json")
+        self.roles = agent_roles.RoleStore()
+        self.default_provider = self.connections.snapshot()["default_provider"]
+        self.connection_slots = threading.BoundedSemaphore(1)
+        self.injected_services = self.fixture is not None or models is not None
+        if self.injected_services and self.default_provider is None:
+            self.default_provider = "kiro"
+        self.claude_models = agent_providers.ClaudeModels()
+        self.claude_usage = claude_usage.UsageService()
         self.models, self.usage = models, usage
-        if self.fixture is None and (models is None or usage is None):
-            import run_kiro  # proxy defaults and environment shared with the runner
-            environment = run_kiro.kiro_environment()
-            self.models = models or kiro_catalog.default_catalog(environment, config_path.parent)
-            self.usage = usage or kiro_usage.UsageService(kiro_usage.AcpUsageFetcher(environment))
+        self.provider_lock = threading.Lock()
         self.sources = {}
         self.aliases = {}
         self.retained = set()  # IDs of sources found by discovery or created by a send, kept in the registry
@@ -868,6 +927,17 @@ class Panel:
         list cannot be read after a restart. Scans repeat at most every five seconds unless the list changes.
         """
         with self.lock:
+            try:
+                registered = agent_tasks.registered_sources()
+            except (OSError, ValueError):
+                registered = []
+            for entry in registered:
+                try:
+                    source = Source(entry["cwd"], entry["root"], strict=False)
+                    if source.id not in self.sources:
+                        self.add_source(source)
+                except (OSError, ValueError, KeyError):
+                    continue
             now = time.monotonic()
             if self.discovered_at[0] == snapshot.version and now - self.discovered_at[1] < 5:
                 return
@@ -991,7 +1061,7 @@ class Panel:
             except OSError:
                 pass  # kept in memory; the next successful write persists it
 
-    def view(self, group_id="", source_id="", agent_id=""):
+    def view(self, group_id="", source_id="", agent_id="", draft_provider=None):
         snapshot = self.catalog.refresh()
         sources = self.all_sources(snapshot)
         now = time.time()
@@ -1022,7 +1092,8 @@ class Panel:
                     conversations.append({"key": source.id + ":" + agent["id"], "source": source.id, "id": agent["id"],
                                           "title": agent["title"], "status": agent["status"], "created_at": agent["created_at"],
                                           "activity": agent["activity"], "cwd": agent.get("cwd"), "turn_count": agent["turn_count"],
-                                          "deletable": not busy})
+                                          "deletable": not busy, "provider": agent["provider"],
+                                          "role_id": agent.get("role_id"), "role_name": agent.get("role_name")})
             conversations.sort(key=lambda item: (item["activity"], item["key"]), reverse=True)
             group["conversations"] = conversations
         groups = [g for g in groups if g["kind"] == "codex" or g["conversations"] or g["can_create"]]
@@ -1050,11 +1121,19 @@ class Panel:
                     shown = dict(state)
                     if isinstance(shown.get("temp"), dict):  # the ownership hash stays server-side
                         shown["temp"] = {k: v for k, v in shown["temp"].items() if k != "token_sha256"}
+                    diagnostics = safe_diagnostics(read_local(directory, "stderr.log"), state) if state.get("status") in {"failed", "cancelled"} else None
                     turns.append({"state": shown, "task": read_local(directory, "task.txt"), "events": events,
                                   "summary": source.summary_for(state, events), "temp": kiro_temp.summarize(state),
-                                  "diagnostics": read_local(directory, "stderr.log")})
+                                  "diagnostic": diagnostics, "diagnostics": safe_diagnostics(read_local(directory, "stderr.log"), state)["detail"]})
                 recorded = source.recorded_selection(runs, agent_id)
                 selected["config"] = ({"model": recorded[0], "effort": recorded[1], "source": "conversation"} if recorded else None)
+                if agent.get("role_id"):
+                    try:
+                        role = self.roles.get(agent["role_id"], executable=True)
+                        selected["role_error"] = "角色已更换 CLI，请新建对话" if role["provider"] != agent["provider"] else ""
+                        selected["config"] = {"model": role["model"], "effort": role["effort"], "source": "role"}
+                    except ValueError as error:
+                        selected["role_error"] = str(error)
                 selected["context"] = conversation_context(context_entries)
         default_source = self.sources.get(self.default_id)
         try:  # read-only: a missing or unreadable setting is reported as unknown (None), never inferred
@@ -1067,7 +1146,10 @@ class Panel:
                   "idle_timeout_seconds": self.config.get("idle_timeout", 120), "active_tasks": active,
                   "preview": self.fixture.get("label") if self.fixture else None,
                   "sends_disabled": bool(self.fixture and self.fixture.get("sends_disabled")),
-                  "account": self.usage.poll() if self.usage else None}
+                  "providers": self.connections.snapshot()["providers"], "default_provider": self.default_provider,
+                  "connections_required": not self.injected_services,
+                  "account": self.account_view(selected.get("provider") if selected else (draft_provider if draft_provider in {"claude", "kiro"} else self.default_provider),
+                                               cwd=self.context_cwd(group_id, source_id, strict=False))}
         return {"groups": groups, "selected": selected, "turns": turns, "root": log_root,
                 "source_groups": group_of_source,
                 "default": {"group": group_of_source.get(default_source.id, OTHER_GROUP) if default_source else "",
@@ -1144,7 +1226,58 @@ class Panel:
             source = Source(main, logs, strict=False)
         return source, main
 
-    def resolve_selection(self, payload, recorded):
+    def kiro_services(self):
+        if self.fixture:
+            return
+        if not self.injected_services:
+            self.connections.executable("kiro")
+        with self.provider_lock:
+            if self.models is None or self.usage is None:
+                import run_kiro
+                environment = run_kiro.kiro_environment()
+                if not self.injected_services:
+                    environment["KIRO_CLI"] = self.connections.executable("kiro")
+                if self.models is None:
+                    self.models = kiro_catalog.default_catalog(environment, self.config_path.parent)
+                if self.usage is None:
+                    self.usage = kiro_usage.UsageService(kiro_usage.AcpUsageFetcher(environment))
+
+    def context_cwd(self, group_id=None, source_id=None, strict=True):
+        if not group_id:
+            return None
+        if group_id == OTHER_GROUP and not source_id:
+            return str(self.daily_paths()[1])
+        snapshot = self.catalog.refresh()
+        if source_id:
+            source = self.source_by_id(source_id, snapshot)
+            if source is not None and self.group_of(source, snapshot) == group_id:
+                return str(source.cwd)
+        else:
+            project = next((p for p in snapshot.projects if p.group_id == group_id), None)
+            if project and project.roots:
+                return str(project.roots[0])
+        if strict:
+            raise ValueError("项目目录不可用")
+        return None
+
+    def account_view(self, provider, cwd=None):
+        if not self.injected_services:
+            try:
+                self.connections.executable(provider)
+            except ValueError:
+                return {"status": "unsupported", "message": "请在设置中连接 CLI；连接检查不会调用模型"}
+        if provider == "claude":
+            return self.claude_usage.snapshot(cwd=cwd)
+        if not self.injected_services:
+            # Opening or polling a page must never trigger token refresh/login.
+            return self.usage.snapshot() if self.usage else {
+                "status": "idle", "data": None, "message": "点击刷新主动读取 Kiro 账户额度"}
+        # A machine without Kiro can still read its old Kiro conversations.
+        if not self.fixture and (not self.injected_services or shutil.which("kiro-cli")):
+            self.kiro_services()
+        return self.usage.poll() if self.usage else None
+
+    def resolve_selection(self, payload, recorded, provider="kiro", cwd=None, role=False):
         """The validated {"model", "effort"} to launch with, or None for the runner's own default.
 
         The browser's values are only a request: they must be in the account's real catalog, and an effort is
@@ -1152,18 +1285,36 @@ class Panel:
         has_model, has_effort = "model" in payload, "effort" in payload
         if not has_model and not has_effort:
             if recorded is None:
-                return None  # new conversation, nothing chosen: Sonnet 5.5 / medium, confirmed by the relay
-            model, effort = recorded
+                if provider == "claude":
+                    defaults = self.connections.defaults("claude")
+                    model, effort = defaults["model"], defaults["effort"]
+                else:
+                    return None  # Kiro selection is verified by the startup relay
+            else:
+                model, effort = recorded
         elif has_model and has_effort:
             model, effort = payload["model"], payload["effort"]
         else:
             raise kiro_catalog.ConfigError("selection_incomplete", "模型和思考强度必须一起提交（不支持强度的模型请提交 null）")
-        if not self.models:
+        if provider == "kiro" and not self.injected_services and (model, effort) == (
+                kiro_catalog.DEFAULT_MODEL, kiro_catalog.DEFAULT_EFFORT):
+            # The runner's ACP relay verifies the pinned selection before forwarding the task.
+            self.connections.executable("kiro")
+            return {"model": model, "effort": effort}
+        if provider == "kiro":
+            self.kiro_services()
+        models = self.claude_models if provider == "claude" else self.models
+        if not models:
             raise kiro_catalog.ConfigError("catalog_unavailable", "当前无法验证模型选择，未发送消息")
         try:
-            model, effort = self.models.validate(model, effort)
+            model, effort = models.validate(model, effort, cwd=cwd) if provider == "claude" else models.validate(model, effort)
+            recorded_alias = recorded == (model, effort) and model in {"sonnet", "opus", "haiku"}
+            if provider == "claude" and not self.injected_services and not role and not recorded_alias:
+                catalog = models.snapshot(cwd=cwd)
+                if catalog.get("status") == "ok":
+                    models.validate(model, effort, cwd=cwd, check_catalog=True)
         except kiro_catalog.ConfigError as error:
-            if error.code == "catalog_unavailable" and (model, effort) == (kiro_catalog.DEFAULT_MODEL, kiro_catalog.DEFAULT_EFFORT):
+            if provider == "kiro" and error.code == "catalog_unavailable" and (model, effort) == (kiro_catalog.DEFAULT_MODEL, kiro_catalog.DEFAULT_EFFORT):
                 return {"model": model, "effort": effort}  # the default is still checked by the runner and relay
             raise
         return {"model": model, "effort": effort}
@@ -1171,6 +1322,12 @@ class Panel:
     def refusal(self, source, outcome_state, agent_id, run_id):
         """409 body for a run that ended before Kiro accepted the prompt: nothing ran, the draft stays."""
         reason = outcome_state.get("startup")
+        if outcome_state.get("provider") == "claude":
+            submitted = outcome_state.get("prompt_submitted", False)
+            return 409, {"error": "Claude 启动或执行失败，请查看诊断日志；" + (
+                         "任务可能已执行部分操作，请先检查工作目录" if submitted else "尚未启动任务"),
+                         "refused": not submitted, "reason": "claude_failed", "agent_id": agent_id,
+                         "run_id": run_id, "source": source.id}
         model, effort = outcome_state.get("model"), outcome_state.get("effort")
         known = {"model_unavailable": f"Kiro 的完整模型目录中没有 {model}，消息没有发送",
                  "effort_unsupported": f"{model} 不支持思考强度 {effort or '（无）'}，消息没有发送",
@@ -1197,6 +1354,9 @@ class Panel:
             raise ValueError("请输入要发送给 subagent 的消息")
         if not isinstance(group_id, str):
             raise ValueError("缺少项目分组")
+        # Connection is checked before creating directories or querying any CLI metadata.
+        if not payload.get("agent") and not self.injected_services:
+            self.connections.executable(payload.get("provider") or self.default_provider)
         snapshot = self.catalog.refresh()
         agent_id, source_id = payload.get("agent"), payload.get("source")
         if agent_id:
@@ -1206,19 +1366,35 @@ class Panel:
             if self.group_of(source, snapshot) != group_id:
                 return 409, {"error": "这条对话所属的项目已变化，请刷新页面后再发送"}
             with source.lock:
-                recorded = source.recorded_selection(source.list_runs(), agent_id)
-            selection = self.resolve_selection(payload, recorded)  # may take a moment: no lock held
+                runs = source.list_runs()
+                agent = next((a for a in group_agents(runs) if a["id"] == agent_id), None)
+                if agent is None:
+                    raise ValueError("所选对话不存在")
+                provider = agent["provider"]
+                if "provider" in payload and payload["provider"] != provider:
+                    raise ValueError("已有对话不能更换后端")
+                recorded = source.recorded_selection(runs, agent_id)
+            if agent.get("role_id"):
+                role, _ = agent_roles.continuation(agent["role_id"], provider, text)
+                payload = {**payload, "model": role["model"], "effort": role["effort"]}
+            selection = self.resolve_selection(payload, recorded, provider, cwd=agent.get("cwd"), role=bool(agent.get("role_id")))  # no source lock held
+            cli_path = self.connections.executable(provider) if not self.injected_services else None
             with source.lock:
-                result = source.start_turn(text, agent_id=agent_id, selection=selection)
+                result = source.start_turn(text, agent_id=agent_id, selection=selection, provider=provider, cli_path=cli_path,
+                                           permission_mode=permission_selection(payload, provider), config_path=self.config_path)
             return self.confirmed(source, result)
-        selection = self.resolve_selection(payload, None)
+        provider = payload.get("provider", self.default_provider)
+        agent_providers.provider(provider)
+        selection = self.resolve_selection(payload, None, provider, cwd=next((str(p.roots[0]) for p in snapshot.projects if p.group_id == group_id and p.roots), None))
+        cli_path = self.connections.executable(provider) if not self.injected_services else None
         source, cwd = self.new_target(group_id, snapshot)
         daily = group_id == OTHER_GROUP
         left_run = False
         try:
             with source.lock:
                 try:
-                    result = source.start_turn(text, cwd=cwd, selection=selection)
+                    result = source.start_turn(text, cwd=cwd, selection=selection, provider=provider, cli_path=cli_path,
+                                               permission_mode=permission_selection(payload, provider), config_path=self.config_path)
                 except ValueError:
                     left_run = daily and bool(source.list_runs())
                     raise
@@ -1253,20 +1429,151 @@ class Panel:
         with source.lock:
             return source.delete_conversation(payload.get("agent"))
 
-    def models_view(self, refresh=False):
+    def models_view(self, refresh=False, provider=None, cwd=None):
+        provider = provider or self.default_provider
+        if provider is not None:
+            agent_providers.provider(provider)
+        if not self.injected_services:
+            try:
+                self.connections.executable(provider)
+            except ValueError:
+                return {"provider": provider, "status": "error", "models": [], "default": {"available": False},
+                        "error": "请先在设置中连接 CLI"}
+        agent_providers.provider(provider)
+        if provider == "claude":
+            return self.claude_models.snapshot(force=refresh, cwd=cwd)
+        if not self.injected_services and not refresh:
+            if self.models is not None and self.models.current is not None:
+                return self.models.view(time.time())  # cached view only; never refresh credentials
+            return {"provider": "kiro", "status": "ok", "source": "pinned-default",
+                    "message": "默认模型在任务启动时由 Kiro 门禁验证；其他模型请在设置中主动读取目录。",
+                    "default": {"model": kiro_catalog.DEFAULT_MODEL, "effort": kiro_catalog.DEFAULT_EFFORT, "available": True},
+                    "models": [{"id": kiro_catalog.DEFAULT_MODEL, "name": "Sonnet 5.5", "selectable": True,
+                                "effort": {"known": True, "supported": True, "levels": [kiro_catalog.DEFAULT_EFFORT],
+                                           "default": kiro_catalog.DEFAULT_EFFORT}}]}
+        self.kiro_services()
         if not self.models:
             return {"status": "error", "models": [], "error": "测试预览没有模型目录", "default": {"available": False}}
         return self.models.snapshot(force=refresh)
 
-    def usage_refresh(self):
+    def usage_refresh(self, provider=None, cwd=None):
+        provider = provider or self.default_provider
+        if not self.injected_services:
+            self.connections.executable(provider)
+        agent_providers.provider(provider)
+        if provider == "claude":
+            snapshot = self.claude_usage.refresh(cwd=cwd)
+            return (429 if snapshot.get("rate_limited") else 200), snapshot
+        self.kiro_services()
         if not self.usage:
             return 404, {"error": "没有可用的额度来源"}
         snapshot = self.usage.refresh()
         return (429 if snapshot.get("rate_limited") else 200), snapshot
 
+    def connection_action(self, payload):
+        if self.fixture:
+            return 403, {"error": "测试预览不允许连接 CLI"}
+        action, provider = payload.get("action"), payload.get("provider")
+        agent_providers.provider(provider)
+        if action not in {"connect", "disconnect", "default", "test", "catalog", "pause", "start", "defaults"}:
+            raise ValueError("未知连接操作")
+        if not self.connection_slots.acquire(blocking=False):
+            return 409, {"ok": False, "message": "另一个连接检查正在执行，请稍后重试"}
+        try:
+            if action == "connect":
+                result = self.connections.connect(provider, payload.get("path", ""), allow_login=True)
+            elif action == "disconnect":
+                result = {"ok": True, "message": "已断开连接；正在运行的任务不受影响", **self.connections.disconnect(provider)}
+            elif action == "default":
+                result = {"ok": True, "message": "已设为默认 CLI", **self.connections.set_default(provider)}
+            elif action == "defaults":
+                if provider != "claude":
+                    raise ValueError("目前仅支持 Claude 默认模型设置")
+                model, effort = self.claude_models.validate(payload.get("model"), payload.get("effort"))
+                catalog = self.claude_models.snapshot()
+                if not any(m["id"] == model for m in catalog.get("models", [])):
+                    raise ValueError("请先读取当前 API 的模型目录并选择模型")
+                result = {"ok": True, "message": "默认模型与思考强度已保存，新对话生效", **self.connections.set_defaults(provider, model, effort)}
+            elif action in {"pause", "start"}:
+                result = {"ok": True, "message": "已暂停，新任务将停止使用此 CLI；正在运行的任务继续执行" if action == "pause" else "已启动 CLI",
+                          **self.connections.set_paused(provider, action == "pause")}
+            elif action == "catalog":
+                catalog = self.models_view(refresh=True, provider=provider)
+                return (200 if catalog.get("status") != "error" else 400), {
+                    "ok": catalog.get("status") != "error", "message": catalog.get("error") or "模型目录已读取", "catalog": catalog}
+            else:
+                return self.test_connection(provider)
+            if result.get("ok"):
+                self.default_provider = self.connections.snapshot()["default_provider"]
+                if provider == "kiro":
+                    with self.provider_lock:
+                        self.models = self.usage = None
+                if action == "connect":
+                    try:
+                        catalog = self.models_view(refresh=True, provider=provider)
+                        result["catalog"] = catalog
+                        result["message"] = ("连接成功；模型目录读取失败，请点击读取模型目录重试" if catalog.get("error")
+                                             or catalog.get("status") == "error" else "连接成功，模型目录已读取")
+                    except (OSError, ValueError, subprocess.SubprocessError):
+                        result["message"] = "连接成功；模型目录读取失败，请重新连接或读取目录重试"
+            return (200 if result.get("ok") else 400), result
+        finally:
+            self.connection_slots.release()
+
+    def test_connection(self, provider):
+        binary = self.connections.executable(provider)
+        # An explicit model call, isolated from project files and with tools disabled by --check.
+        with tempfile.TemporaryDirectory(prefix="coder-agents-probe-") as directory:
+            runner = SKILL / "scripts" / agent_providers.provider(provider)["runner"]
+            command = [sys.executable, str(runner), "--cwd", directory, "--run-dir", str(Path(directory) / "run"),
+                       "--cli-path", binary, "--check"]
+            if provider == "claude":
+                command += ["--timeout", "30"]
+                defaults = self.connections.defaults("claude")
+                command += ["--model", defaults["model"]]
+                command += ["--effort", defaults["effort"]] if defaults["effort"] else ["--no-effort"]
+            else:
+                command += ["--timeout", "30"]
+            process = subprocess.Popen(command, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                                       stderr=subprocess.DEVNULL, start_new_session=True)
+            try:
+                code = process.wait(timeout=40)
+            except subprocess.TimeoutExpired:
+                process.terminate()
+                try:
+                    process.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    process.wait()
+                diagnostic = agent_diagnostics.diagnose("timeout")
+                return 400, {"ok": False, "message": diagnostic["message"], "diagnostic": diagnostic}
+            if code:
+                directory = Path(directory) / "run"
+                try:
+                    state = json.loads(read_local(directory, "state.json"))
+                except (ValueError, OSError):
+                    state = {}
+                diagnostic = safe_diagnostics(read_local(directory, "stderr.log"), state)
+                return 400, {"ok": False, "message": diagnostic["message"] + "；" + diagnostic["next_step"], "diagnostic": diagnostic}
+            return 200, {"ok": True, "message": "模型测试调用成功（与连接检查独立）"}
+
+    def task_stop(self, payload):
+        source = self.source_by_id(payload.get("source"), self.catalog.refresh())
+        run_id = payload.get("run")
+        if source is None or not isinstance(run_id, str) or not re.fullmatch(r"[A-Za-z0-9_-]+", run_id):
+            raise ValueError("所选任务不存在")
+        if self.group_of(source, self.catalog.snapshot()) != payload.get("group"):
+            raise ValueError("任务所属项目已变化，请刷新页面")
+        with source.lock:
+            directory = source.root / run_id
+            if directory.is_symlink() or directory.resolve().parent != source.root:
+                raise ValueError("任务目录无效")
+            result = agent_tasks.stop(directory)
+        return 200, {"run": run_id, "status": result.get("status"),
+                     "stopped": result.get("status") not in ACTIVE_STATUSES}
+
     def temp_action(self, payload):
-        """Human acceptance of one turn's temp directory: accept and clean exactly that run's managed directory.
-        History, logs and sessions are not touched; the checks live in kiro_temp.cleanup."""
+        """Explicit cleanup of one task's data, for either CLI provider."""
         snapshot = self.catalog.refresh()
         source = self.source_by_id(payload.get("source"), snapshot)
         run_id, agent_id = payload.get("run"), payload.get("agent")
@@ -1281,22 +1588,18 @@ class Panel:
         if not runs or directory.is_symlink() or directory.resolve().parent != source.root:
             return 404, {"error": "找不到这轮任务"}
         if not self.temp_lock.acquire(blocking=False):
-            return 409, {"error": "另一项临时文件清理正在进行，请稍后再试", "code": "busy"}
+            return 409, {"error": "另一项任务数据清理正在进行，请稍后再试", "code": "busy"}
         try:
-            result = kiro_temp.cleanup(directory, accept_now=True, by="panel")
-        except kiro_temp.TempError as error:
-            return 409, {"error": str(error), "code": error.code}
+            outcome = self.temp_clean_turn(source, runs[0], "pending", {"run": run_id, "round": 1})
+            if outcome["outcome"] != "cleaned":
+                return 409, {"error": outcome["reason"], "code": outcome["code"]}
+            return 200, {"cleaned": True, **outcome}
         finally:
             self.temp_lock.release()
-        return 200, {"cleaned": True, **result}
 
-    # -- Global managed-temp overview and bulk cleanup ------------------------------------------------
-    # Only the managed per-run temp directories are ever removed, and only through kiro_temp.cleanup (ownership marker,
-    # PID namespace and process checks). Conversations, sessions and run logs are never touched.
+    # Unified task data: results, logs and recorded managed temporary directories.
     def temp_conversations(self, snapshot=None):
-        """Every conversation of every source with the state of each turn's managed temp directory (read-only).
-
-        Returns [(group id, group name, source, conversation dict, {run id: state})]; browser input never contributes."""
+        """Enumerate every provider's task data, grouped by conversation (read-only)."""
         snapshot = snapshot or self.catalog.refresh()
         names = {p.group_id: p.name for p in snapshot.projects}
         names[OTHER_GROUP] = "其他对话"
@@ -1310,12 +1613,9 @@ class Panel:
                 turns, states = [], {}
                 own = [r for r in runs if r["agent_id"] == agent["id"]]
                 for index, state in enumerate(own, 1):
-                    record = state.get("temp")
-                    if not isinstance(record, dict) or not isinstance(record.get("path"), str):
-                        continue
-                    kind = temp_turn_state(state, record)
+                    kind = "running" if state.get("status") in ACTIVE_STATUSES else "pending"
                     states[state["id"]] = (state, kind)
-                    turns.append({"run": state["id"], "round": index, "state": kind, "accepted": record.get("status") == "accepted", "started_at": state.get("started_at")})
+                    turns.append({"run": state["id"], "round": index, "state": kind, "provider": state.get("provider", "kiro"), "started_at": state.get("started_at")})
                 counts = {k: sum(t["state"] == k for t in turns) for k in ("pending", "running", "needs_review", "unknown", "cleaned")}
                 busy = any(r.get("status") in ACTIVE_STATUSES for r in own)
                 found.append((group, names.get(group, group), order, source,
@@ -1341,9 +1641,7 @@ class Panel:
         return {"groups": ordered, "totals": totals, "generated_at": datetime.now(timezone.utc).isoformat()}
 
     def temp_bulk(self, payload):
-        """Clean the managed temp directories of every conversation (scope "all", enumerated now) or of the explicitly
-        selected conversations (source + agent, group-checked). Skips what is running, unaccepted failed/interrupted
-        turns and anything whose ownership or processes cannot be proven."""
+        """Delete results, logs and managed temp for selected/all non-running tasks."""
         scope = payload.get("scope")
         wanted = None
         if scope == "selected":
@@ -1358,7 +1656,7 @@ class Panel:
         elif scope != "all":
             return 400, {"error": "清理范围无效", "code": "bad_scope"}
         if not self.temp_lock.acquire(blocking=False):
-            return 409, {"error": "另一项临时文件清理正在进行，请稍后再试", "code": "busy"}
+            return 409, {"error": "另一项任务数据清理正在进行，请稍后再试", "code": "busy"}
         try:
             found = {(s.id, c["agent"]): (g, s, c, st) for g, _, _, s, c, st in self.temp_conversations()}
             result = {"scope": scope, "cleaned": 0, "skipped": 0, "errors": 0, "already_cleaned": 0, "conversations": []}
@@ -1388,27 +1686,43 @@ class Panel:
             self.temp_lock.release()
 
     def temp_clean_turn(self, source, state, kind, turn):
-        """Outcome dict for one turn, or None when it was already cleaned. Never raises."""
+        """Delete a non-running task's recorded data. No acceptance or /proc scan required."""
         item = {"run": turn["run"], "round": turn["round"]}
-        skipped = {"running": ("active", "任务运行中，已跳过"), "unknown": ("unknown_state", "任务状态未知，已跳过"),
-                   "needs_review": ("needs_review", "失败或中断的任务未验收，需复测后单独验收，已跳过")}
-        if kind == "cleaned":
-            return None
-        if kind in skipped:
-            return {**item, "outcome": "skipped", "code": skipped[kind][0], "reason": skipped[kind][1]}
-        directory = source.root / state["id"]
-        if directory.is_symlink() or directory.resolve().parent != source.root or not re.fullmatch(r"[A-Za-z0-9_-]+", state["id"]):
-            return {**item, "outcome": "skipped", "code": "not_owned", "reason": "运行目录位置异常，已跳过"}
         try:
-            kiro_temp.cleanup(directory, accept_now=True, by="panel")
-        except kiro_temp.TempError as error:
-            reason = str(error).split(" / ")[0]
-            if error.code in TEMP_SKIP_CODES:
-                return {**item, "outcome": "skipped", "code": error.code, "reason": reason}
-            return {**item, "outcome": "error", "code": error.code, "reason": reason}
-        except (OSError, ValueError) as error:
-            return {**item, "outcome": "error", "code": "os_error", "reason": "清理失败：" + (getattr(error, "strerror", None) or type(error).__name__)}
-        return {**item, "outcome": "cleaned", "code": "cleaned", "reason": ""}
+            with source.lock:
+                run_id = turn["run"]
+                directory = source.root / run_id
+                if not re.fullmatch(r"[A-Za-z0-9_-]+", run_id) or directory.is_symlink() or directory.resolve().parent != source.root:
+                    raise ValueError("运行目录位置异常，未删除")
+                if not directory.exists():
+                    return {**item, "outcome": "skipped", "code": "missing", "reason": "任务已清理"}
+                # Re-read immediately before deleting; an earlier overview is not authoritative.
+                current = json.loads((directory / "state.json").read_text())
+                if current.get("status") in ACTIVE_STATUSES:
+                    return {**item, "outcome": "skipped", "code": "active", "reason": "任务运行中，已跳过"}
+                record = current.get("temp")
+                if isinstance(record, dict) and isinstance(record.get("path"), str):
+                    path = Path(record["path"])
+                    expected = source.cwd / "work/tmp" / run_id
+                    if path != expected or path.resolve() != expected or path == directory or path in directory.parents or directory in path.parents:
+                        raise ValueError("临时目录位置异常，未删除任务数据")
+                    if path.exists():
+                        kiro_temp.clean_tree(path, os.lstat(path))
+                shutil.rmtree(directory)
+                (source.root / (".launch-" + run_id + ".log")).unlink(missing_ok=True)
+                source.legacy_sessions.pop(run_id, None)
+                source.summaries.pop(run_id, None)
+                agent_id = current.get("agent_id") or run_id
+                if not any(r["agent_id"] == agent_id for r in source.list_runs()):
+                    metadata = source.root / "conversations.json"
+                    if metadata.is_file():
+                        saved = json.loads(metadata.read_text())
+                        if isinstance(saved, dict) and agent_id in saved:
+                            saved.pop(agent_id)
+                            write_json(metadata, saved)
+            return {**item, "outcome": "cleaned", "code": "cleaned", "reason": ""}
+        except (OSError, ValueError, kiro_temp.TempError) as error:
+            return {**item, "outcome": "error", "code": "cleanup_error", "reason": "清理失败：" + str(error).split(" / ")[0]}
 
     def active_tasks(self):
         return sum(r.get("status") in ACTIVE_STATUSES for s in self.all_sources(self.catalog.snapshot()) for r in s.list_runs())
@@ -1538,7 +1852,7 @@ def make_handler(panel):
                         self.send_body({"url": panel.address + "/", "project_id": source.id})
                     else:
                         self.send_error(404)
-                elif path in {"/api/send", "/api/delete", "/api/stop", "/api/usage/refresh", "/api/temp", "/api/temp/bulk"}:
+                elif path in {"/api/send", "/api/delete", "/api/stop", "/api/tasks/stop", "/api/usage/refresh", "/api/temp", "/api/temp/bulk", "/api/connections", "/api/roles"}:
                     if not self.browser_post_ok():
                         return
                     if path == "/api/stop":
@@ -1546,12 +1860,21 @@ def make_handler(panel):
                         self.send_body({"stopped": True})
                         return
                     if path == "/api/usage/refresh":
-                        status, result = panel.usage_refresh()
+                        payload = self.payload()
+                        cwd = panel.context_cwd(payload.get("group"), payload.get("source"))
+                        status, result = panel.usage_refresh(payload.get("provider"), cwd=cwd)
                         self.send_body(result, status=status)
                         return
                     payload = self.payload()
+                    if path == "/api/roles":
+                        self.send_body(panel.roles.mutate(payload))
+                        return
+                    if path == "/api/connections":
+                        status, result = panel.connection_action(payload)
+                        self.send_body(result, status=status)
+                        return
                     status, result = {"/api/send": panel.send, "/api/delete": panel.delete, "/api/temp": panel.temp_action,
-                                                                                               "/api/temp/bulk": panel.temp_bulk}[path](payload)
+                                     "/api/tasks/stop": panel.task_stop, "/api/temp/bulk": panel.temp_bulk}[path](payload)
                     self.send_body(result, status=status)
                 else:
                     self.send_error(404)
@@ -1572,13 +1895,18 @@ def make_handler(panel):
             elif path.startswith("/vendor/") and path[1:] in VENDOR_ASSETS:
                 name, mime = VENDOR_ASSETS[path[1:]]
                 self.send_body((SKILL / name).read_bytes(), mime)
+            elif path == "/api/health":
+                if not self.authenticated():
+                    self.send_body({"error": "需要面板登录状态"}, status=401)
+                    return
+                self.send_body({"service": "coder-agents", "ready": True, "version": VERSION})
             elif path == "/api":
                 if not self.authenticated():
                     self.send_body({"error": "登录状态已失效，请重新打开固定入口 http://127.0.0.1:%d/" % panel.port}, status=401)
                     return
                 query = parse_qs(parts.query)
                 first = lambda name: (query.get(name) or [""])[0][:200]
-                self.send_body(panel.view(first("group"), first("source"), first("agent")))
+                self.send_body(panel.view(first("group"), first("source"), first("agent"), first("provider")))
             elif path in {"/api/review", "/api/review/file", "/api/review/diff"}:
                 if not self.authenticated():
                     self.send_body({"error": "登录状态已失效，请重新打开固定入口 http://127.0.0.1:%d/" % panel.port}, status=401)
@@ -1592,11 +1920,40 @@ def make_handler(panel):
                     self.send_body({"error": "登录状态已失效，请重新打开固定入口 http://127.0.0.1:%d/" % panel.port}, status=401)
                     return
                 self.send_body(panel.temp_overview())
+            elif path == "/api/roles":
+                if not self.authenticated():
+                    self.send_body({"error": "需要面板登录状态"}, status=401)
+                    return
+                try:
+                    self.send_body(panel.roles.snapshot())
+                except (OSError, ValueError) as error:
+                    self.send_body({"error": str(error)}, status=400)
+            elif path == "/api/connections":
+                if not self.authenticated():
+                    self.send_body({"error": "需要面板登录状态"}, status=401)
+                    return
+                self.send_body(panel.connections.snapshot())
             elif path == "/api/models":
                 if not self.authenticated():
                     self.send_body({"error": "登录状态已失效，请重新打开固定入口 http://127.0.0.1:%d/" % panel.port}, status=401)
                     return
-                self.send_body(panel.models_view(refresh=parse_qs(parts.query).get("refresh") == ["1"]))
+                query = parse_qs(parts.query)
+                try:
+                    cwd = None
+                    if query.get("group"):
+                        snapshot = panel.catalog.refresh()
+                        if query.get("source"):
+                            source = panel.source_by_id(query["source"][0], snapshot)
+                            if source is None or panel.group_of(source, snapshot) != query["group"][0]:
+                                raise ValueError("项目目录不可用")
+                            cwd = str(source.cwd)
+                        else:
+                            project = next((p for p in snapshot.projects if p.group_id == query["group"][0]), None)
+                            cwd = str(project.roots[0]) if project and project.roots else None
+                    self.send_body(panel.models_view(refresh=query.get("refresh") == ["1"],
+                                                     provider=(query.get("provider") or [None])[0], cwd=cwd))
+                except ValueError as error:
+                    self.send_body({"error": str(error)}, status=400)
             else:
                 # A tokenized bookmark from an earlier version: select its source, then continue at "/".
                 remainder = self.token_remainder(path)
@@ -1638,6 +1995,7 @@ def main():
     parser.add_argument("--systemd-socket", action="store_true")
     args = parser.parse_args()
     config_path = args.config.expanduser().resolve()
+    os.environ["CODER_AGENTS_CONFIG"] = str(config_path)
     if not config_path.exists():
         parser.error("请先运行 python3 -m coder_agents service install（见 README），安装固定入口和按需启动服务")
     config = json.loads(config_path.read_text())

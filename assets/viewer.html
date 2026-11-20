@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Kiro · 任务对话</title>
+<title>Coder-Agents · 任务对话</title>
 <style>
 :root{color-scheme:dark;--bg:#151719;--panel:#1b1e21;--line:#303438;--text:#edf0f2;--muted:#939da5;--accent:#9fdfc5;--bubble:#273b37;font:14px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text)}button{font:inherit;color:inherit;cursor:pointer}button,summary{touch-action:manipulation}button:focus-visible,summary:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:3px}button:disabled{opacity:.45;cursor:default}svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex:none}#app{height:100dvh;display:flex;overflow:hidden;position:relative}.sidebar{width:220px;flex:none;background:#101214;border-right:1px solid var(--line);display:flex;flex-direction:column;transition:margin .18s}.sidebar.closed{margin-left:-220px}.side-head{padding:22px 18px 12px;display:flex;align-items:center;justify-content:space-between}.side-head strong{font-size:13px;letter-spacing:.04em}#run-list{overflow:auto;padding:4px 9px;flex:1}.run{display:block;width:100%;border:0;background:transparent;text-align:left;border-radius:9px;padding:12px 10px;margin:3px 0}.run:hover{background:#1b2024}.run.selected{background:#25312d}.run-title{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}.run-meta{font-size:11px;color:var(--muted);display:flex;justify-content:space-between;gap:8px;margin-top:5px}.side-bottom{padding:14px 18px;border-top:1px solid var(--line);font-size:11px;color:var(--muted)}.side-bottom summary{cursor:pointer}.side-bottom p{margin:8px 0;overflow-wrap:anywhere}.main{min-width:0;flex:1;display:flex;flex-direction:column;position:relative}.topbar{display:flex;align-items:center;gap:12px;min-height:79px;padding:15px 24px;border-bottom:1px solid var(--line);background:var(--bg);z-index:2}.icon-button{border:1px solid var(--line);border-radius:9px;background:transparent;padding:8px;display:inline-flex;align-items:center;justify-content:center}.icon-button:hover{background:var(--panel)}.brand{width:36px;height:36px;border:1px solid #4d7063;background:#253f34;color:#bdebd4;border-radius:11px;display:grid;place-items:center;font-size:19px;font-weight:650;flex:none}.title{min-width:0}.title h1{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:26vw;font-size:15px;font-weight:600;margin:0}.subtitle{color:var(--muted);font-size:11px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:45vw}.badge{margin-left:auto;white-space:nowrap;border:1px solid #37403e;border-radius:20px;font-size:11px;color:#acbbb5;padding:4px 10px;display:flex;align-items:center;gap:6px}.dot{width:6px;height:6px;border-radius:50%;background:currentColor}.badge.running{color:#a5e4c7;border-color:#345b49}.badge.failed{color:#efa7ad;border-color:#6b3b43}.badge.completed{color:#b3ccdf;border-color:#3c5263}.badge.checking .dot,.badge.running .dot{animation:pulse 1.5s infinite}@keyframes pulse{50%{opacity:.25}}.scroll-area{flex:1;min-height:0;overflow-y:auto;scroll-behavior:smooth;overscroll-behavior:contain}.conversation{max-width:850px;margin:0 auto;padding:32px 28px 30px;min-height:100%}.date-line{text-align:center;color:#68757b;font-size:11px;margin:0 0 30px;display:flex;align-items:center;gap:16px}.date-line:before,.date-line:after{content:"";height:1px;background:#282e32;flex:1}.message{margin:0 0 28px;display:flex;gap:12px;align-items:flex-start}.avatar{width:28px;height:28px;border-radius:9px;display:grid;place-items:center;font-size:12px;font-weight:600;background:#243b31;color:#bce8d1;flex:none}.message.user{justify-content:flex-end}.message.user .avatar{display:none}.message-content{min-width:0;max-width:calc(100% - 40px)}.message.user .message-content{max-width:86%}.message-meta{display:flex;align-items:center;gap:9px;margin-bottom:7px;font-size:11px;color:var(--muted)}.message-meta strong{font-size:12px;font-weight:550;color:#d9e0e4}.message.user .message-meta{justify-content:flex-end}.bubble{line-height:1.75;overflow-wrap:anywhere}.message.user .bubble{background:var(--bubble);border:1px solid #354e46;border-radius:14px 3px 14px 14px;padding:13px 17px;font-size:13px}.message.assistant .bubble{background:transparent;border:0;padding:0 0 6px}.bubble p{margin:0 0 12px}.bubble p:last-child{margin-bottom:0}.bubble strong{font-weight:650}.bubble code{font:12px/1.7 ui-monospace,SFMono-Regular,Consolas,monospace;background:#30383d;color:#d8e6ed;border-radius:4px;padding:2px 5px}.code-block{border:1px solid #37414a;border-radius:9px;overflow:hidden;margin:12px 0;white-space:normal;background:#11171b}.code-head{display:flex;justify-content:space-between;align-items:center;padding:7px 12px;color:#9cacb6;background:#202930;font-size:10px}.copy{border:0;background:transparent;font-size:10px;color:#a9c2cb;padding:2px 5px}.code-block pre{white-space:pre;overflow-x:auto;margin:0;padding:14px;font:12px/1.65 ui-monospace,monospace;color:#e0e9ed}.tool-row{margin:-10px 0 22px 40px;max-width:calc(100% - 40px)}.tool{border:1px solid #343c42;border-radius:10px;background:#1b2024;overflow:hidden}.tool summary{padding:11px 13px;list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;font-size:12px}.tool summary::-webkit-details-marker{display:none}.tool-icon{color:#a6c5c2;font-family:monospace;font-size:15px}.tool-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tool-state{margin-left:auto;color:#8fac9d;font-size:10px;white-space:nowrap}.chevron{width:12px;height:12px;color:#7b8b95;transition:transform .15s}.tool[open] .chevron{transform:rotate(90deg)}.tool-body{border-top:1px solid #303a41;padding:13px}.tool-body h3{font-size:10px;color:#91a6b0;font-weight:500;margin:0 0 6px}.tool-body pre{font:11px/1.65 ui-monospace,monospace;white-space:pre-wrap;overflow-wrap:anywhere;max-height:350px;overflow:auto;margin:0 0 15px;color:#d4dfe5}.tool-body pre:last-child{margin-bottom:0}.empty{display:flex;align-items:center;justify-content:center;flex-direction:column;padding:70px 10px;color:var(--muted);text-align:center}.empty .brand{width:48px;height:48px;margin-bottom:16px}.empty h2{font-size:18px;font-weight:550;color:#dce7e1;margin:0 0 6px}.empty p{font-size:12px;margin:0}.turn-end{display:flex;gap:8px;align-items:center;color:#9babaf;font-size:11px;margin-left:40px;margin-top:-5px}.turn-end svg{width:14px;height:14px}.footer{border-top:1px solid var(--line);padding:12px 24px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--bg);color:#8a979e;font-size:10px}.footer .spacer{flex:1}.text-button{color:#9caeb8;background:transparent;border:0;padding:3px;font-size:10px}.text-button:hover{color:var(--accent)}#latest{position:absolute;bottom:65px;left:50%;transform:translateX(-50%);border:1px solid #4c645b;border-radius:25px;background:#243d32;color:#c2e9d8;padding:7px 15px;font-size:11px;box-shadow:0 4px 20px #0005;z-index:3}#latest[hidden]{display:none}.debug{position:absolute;inset:79px 0 0;background:var(--bg);z-index:5;display:flex;flex-direction:column;padding:22px;gap:14px}.debug[hidden]{display:none}.debug-head{display:flex;align-items:center;justify-content:space-between}.debug h2{font-size:15px;margin:0}.debug details{border:1px solid var(--line);border-radius:9px;padding:12px;font-size:12px}.debug summary{cursor:pointer;color:#b6c8cd}.debug pre{font:11px/1.6 ui-monospace,monospace;white-space:pre-wrap;overflow-wrap:anywhere;max-height:45vh;overflow:auto;color:#9fafba}.overlay{display:none}@media(max-width:640px){.sidebar{position:absolute;inset:0 auto 0 0;z-index:10;box-shadow:8px 0 35px #0008}.sidebar.closed{transform:translateX(-100%);margin-left:0}.overlay.open{display:block;position:fixed;inset:0;background:#0006;z-index:9}.topbar{padding:13px 15px;gap:9px}.conversation{padding:25px 16px}.footer{padding:10px 15px}.subtitle{max-width:43vw}}@media(max-width:480px){.brand{display:none}.avatar{width:24px;height:24px}.message{gap:9px}.message-content{max-width:calc(100% - 33px)}.message.user .message-content{max-width:92%}.message.assistant .bubble{padding:12px 13px}.tool-row{margin-left:33px;max-width:calc(100% - 33px)}.badge{font-size:10px;padding:3px 7px}.footer .hint{display:none}}
 
@@ -57,8 +57,73 @@
 .chip{border:1px solid #37403e;border-radius:12px;padding:0 8px;font-size:10px;white-space:nowrap}.chip.ok{color:#a5e4c7;border-color:#345b49}.chip.warn{color:#e6c88f;border-color:#5b4a2e}.chip.bad{color:#efa7ad;border-color:#6b3b43}
 .account .refresh{border:1px solid #3a4348;background:transparent;color:#a9c2cb;border-radius:8px;font-size:10px;padding:1px 8px}.account .refresh:hover:enabled{border-color:#6d8b80;color:var(--accent)}
 .account .note{flex-basis:100%;text-align:right;font-size:10px;color:#e6c88f}.account .note.bad{color:#efa7ad}
-.side-bottom{padding:10px 12px}.settings-open{width:100%;display:flex;align-items:center;gap:9px;border:1px solid transparent;background:transparent;border-radius:9px;padding:9px 10px;font-size:12px;color:#c4ced3;text-align:left}.settings-open:hover,.settings-open[aria-expanded=true]{background:#1b2024;border-color:var(--line)}.settings{position:absolute;inset:0;background:var(--bg);z-index:20;display:flex;flex-direction:column;min-height:0}.settings[hidden]{display:none}.settings-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 24px;border-bottom:1px solid var(--line)}.settings-head h2{font-size:15px;margin:0}.settings-body{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;padding:20px 24px 28px}.settings-inner{max-width:880px;margin:0 auto;display:flex;flex-direction:column;gap:18px}.settings-sec{border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:16px 18px;min-width:0}.settings-sec h3{font-size:13px;margin:0 0 4px}.settings-sec .lead{color:var(--muted);font-size:11px;margin:0 0 12px;overflow-wrap:anywhere}.settings-sec p{margin:0 0 8px;font-size:12px;color:#c4ced3;overflow-wrap:anywhere}.settings-sec p.muted{color:var(--muted);font-size:11px}.temp-scope{font-size:12px;margin:0 0 6px;color:#dce7e1;overflow-wrap:anywhere}.temp-list{display:flex;flex-direction:column;gap:8px;margin-top:10px}.temp-item{border:1px solid #2e3438;border-radius:9px;background:#15181a;padding:10px 12px;min-width:0}.temp-line{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;font-size:12px}.temp-line .tt{color:#dce7e1}.temp-line .ts{color:var(--accent);font-size:11px}.temp-line .tm{color:var(--muted);font-size:11px}.temp-item .clean{margin-left:auto;border:1px solid #4c645b;background:transparent;color:#c2e9d8;border-radius:8px;font-size:11px;padding:4px 10px}.temp-item .clean:hover:enabled{background:#243d32}.temp-item .why{margin-left:auto;font-size:11px;color:var(--muted)}.temp-item details{margin-top:6px;font-size:11px}.temp-item summary{cursor:pointer;color:#9caeb8}.temp-item code{display:block;margin-top:5px;font:11px/1.6 ui-monospace,monospace;color:#9fb0b6;overflow-wrap:anywhere;user-select:all}.temp-feedback{margin-top:10px;border-radius:9px;padding:9px 12px;font-size:12px;overflow-wrap:anywhere;border:1px solid #345b49;color:#a5e4c7;background:#17231f}.temp-feedback[hidden]{display:none}.temp-feedback.warn{border-color:#5b4a2e;color:#e6c88f;background:#211d14}.temp-feedback.error{border-color:#6b3b43;color:#efa7ad;background:#241a1c}.temp-empty{color:var(--muted);font-size:12px;border:1px dashed #333b40;border-radius:9px;padding:14px;text-align:center}.settings .close-service{padding:7px 11px;font-size:12px}.settings .close-service span{display:inline}
+.side-bottom{padding:10px 12px}.settings-open{width:100%;display:flex;align-items:center;gap:9px;border:1px solid transparent;background:transparent;border-radius:9px;padding:9px 10px;font-size:12px;color:#c4ced3;text-align:left}.settings-open:hover,.settings-open[aria-expanded=true]{background:#1b2024;border-color:var(--line)}.settings{position:absolute;inset:0;background:var(--bg);z-index:20;display:flex;flex-direction:column;min-height:0}.settings[hidden]{display:none}.settings-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 24px;border-bottom:1px solid var(--line)}.settings-head h2{font-size:15px;margin:0}.settings-body{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;padding:20px 24px 28px}.settings-inner{max-width:880px;margin:0 auto;display:flex;flex-direction:column;gap:18px}.settings-sec{border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:16px 18px;min-width:0}.cli-row{border-top:1px solid var(--line);padding:14px 0;display:flex;flex-direction:column;gap:9px}.cli-row label{font-size:12px;color:#dce7e1}.cli-row input{width:100%;min-width:0;border:1px solid var(--line);border-radius:8px;padding:9px;background:var(--bg);color:var(--text);font:inherit;font-size:12px}.cli-row input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}.cli-actions{display:flex;flex-wrap:wrap;gap:8px}.cli-status{font-size:12px;color:var(--muted);overflow-wrap:anywhere}#cli-feedback{margin-top:10px;white-space:pre-wrap}.settings-sec h3{font-size:13px;margin:0 0 4px}.settings-sec .lead{color:var(--muted);font-size:11px;margin:0 0 12px;overflow-wrap:anywhere}.settings-sec p{margin:0 0 8px;font-size:12px;color:#c4ced3;overflow-wrap:anywhere}.settings-sec p.muted{color:var(--muted);font-size:11px}.temp-scope{font-size:12px;margin:0 0 6px;color:#dce7e1;overflow-wrap:anywhere}.temp-list{display:flex;flex-direction:column;gap:8px;margin-top:10px}.temp-item{border:1px solid #2e3438;border-radius:9px;background:#15181a;padding:10px 12px;min-width:0}.temp-line{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;font-size:12px}.temp-line .tt{color:#dce7e1}.temp-line .ts{color:var(--accent);font-size:11px}.temp-line .tm{color:var(--muted);font-size:11px}.temp-item .clean{margin-left:auto;border:1px solid #4c645b;background:transparent;color:#c2e9d8;border-radius:8px;font-size:11px;padding:4px 10px}.temp-item .clean:hover:enabled{background:#243d32}.temp-item .why{margin-left:auto;font-size:11px;color:var(--muted)}.temp-item details{margin-top:6px;font-size:11px}.temp-item summary{cursor:pointer;color:#9caeb8}.temp-item code{display:block;margin-top:5px;font:11px/1.6 ui-monospace,monospace;color:#9fb0b6;overflow-wrap:anywhere;user-select:all}.temp-feedback{margin-top:10px;border-radius:9px;padding:9px 12px;font-size:12px;overflow-wrap:anywhere;border:1px solid #345b49;color:#a5e4c7;background:#17231f}.temp-feedback[hidden]{display:none}.temp-feedback.warn{border-color:#5b4a2e;color:#e6c88f;background:#211d14}.temp-feedback.error{border-color:#6b3b43;color:#efa7ad;background:#241a1c}.temp-empty{color:var(--muted);font-size:12px;border:1px dashed #333b40;border-radius:9px;padding:14px;text-align:center}.settings .close-service{padding:7px 11px;font-size:12px}.settings .close-service span{display:inline}
 @media(max-width:480px){.settings-head{padding:12px 15px}.settings-body{padding:14px 12px 22px}.settings-sec{padding:13px 12px}.temp-item .clean,.temp-item .why{margin-left:0}.cfg{max-width:46vw}.composer-bottom>#composer-hint{flex-basis:100%}}
+
+/* Settings navigation and content scroll independently. */
+.settings-body{display:grid;grid-template-columns:196px minmax(0,1fr);overflow:hidden;padding:0}
+.settings-nav{display:flex;flex-direction:column;gap:6px;padding:24px 14px;border-right:1px solid var(--line);background:var(--panel);overflow:auto}
+.settings-nav-label{padding:0 12px 12px;font-size:11px;color:var(--muted)}
+.settings-nav button{min-height:44px;border:1px solid transparent;border-radius:8px;background:transparent;color:var(--muted);padding:10px 12px;text-align:left;font:inherit;font-size:13px;cursor:pointer}
+.settings-nav button:hover{background:var(--bg);color:var(--text)}
+.settings-nav button[aria-selected=true]{background:#22392f;border-color:#395748;color:#c2e9d8;font-weight:600}
+.settings-nav button:focus-visible,.settings-page:focus-visible,.settings summary:focus-visible,.settings a:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.settings-content{min-width:0;min-height:0;overflow:auto;overscroll-behavior:contain;padding:32px clamp(20px,4vw,56px) 40px}
+.settings-inner{max-width:820px;margin:0 auto;display:block}
+.settings-page{display:flex;flex-direction:column;gap:20px;outline-offset:6px}.settings-page[hidden]{display:none}
+.settings-page-head h3{margin:0 0 8px;font-size:22px;font-weight:600;letter-spacing:-.4px}
+.settings-page-head p{margin:0;color:var(--muted);font-size:13px;line-height:1.7}
+.settings-sec{padding:20px 22px}.settings-sec h4{margin:0 0 10px;font-size:14px;font-weight:600}
+.settings-sec p,.settings-sec .lead,.settings-sec p.muted{font-size:13px;line-height:1.75}
+.settings-sec p:last-child{margin-bottom:0}.settings-sec p.muted,.settings-sec .lead{font-size:12px}
+.cli-defaults-row{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.cli-defaults-field{display:flex;flex-direction:column;gap:8px;min-width:0}
+.cli-defaults-field:first-child{flex:1 1 220px}
+.cli-defaults-field .cfg{width:100%;max-width:none;height:35px;margin:0}
+.cli-defaults-row>button{flex-shrink:0;white-space:nowrap}
+.settings-sec:has(#cli-list){background:transparent;border:0;padding:0}
+#cli-list{display:flex;flex-direction:column;gap:12px}
+.cli-row{border:1px solid var(--line);border-radius:12px;padding:20px 22px;gap:14px;background:var(--panel)}
+.cli-card-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px}.cli-card-head h4{margin:0;font-size:15px}
+.cli-status{font-size:12px}.cli-row[data-default=true]{border-color:#466352}
+.cli-path-options{font-size:12px;color:var(--muted)}.cli-path-options summary{cursor:pointer;padding:5px 0}
+.cli-path-options label{display:block;margin:10px 0 6px}.cli-row input{font-size:13px}
+.settings .cli-actions button,.settings .temp-actions button{min-height:40px}
+.install-guide ol{margin:12px 0 16px;padding-left:20px;font-size:13px;line-height:1.8;color:var(--muted)}.install-guide li+li{margin-top:8px}
+.settings a{color:#b0dcc8;text-underline-offset:3px}.settings details summary{font-size:13px;line-height:1.7;cursor:pointer}.settings details[open]>summary{margin-bottom:12px}
+.settings code{font-size:12px;overflow-wrap:anywhere}.service-stop{margin-top:12px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px}.service-stop h4{margin-bottom:6px}
+.help-questions details+details{border-top:1px solid var(--line);padding-top:16px;margin-top:16px}
+@media(max-width:640px){.settings-body{display:flex;flex-direction:column;padding:0}.settings-nav{flex:none;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));border-right:0;border-bottom:1px solid var(--line);padding:10px 12px;gap:6px}.settings-nav-label{display:none}.settings-nav button{text-align:center;padding:10px 6px;font-size:12px}.settings-content{flex:1;padding:22px 14px 32px}.settings-page{gap:16px}.settings-page-head h3{font-size:20px}.settings-sec,.cli-row{padding:16px}.settings .cli-actions button,.settings .temp-actions button{min-height:44px}.cli-actions{gap:8px}.settings-page-head p{font-size:12px}}
+
+/* Compact provider overview and provider-specific configuration. */
+.cli-group+.cli-group{margin-top:32px}.cli-group>h4{margin:0 0 6px;font-size:14px}.cli-group>h4 span{margin-left:6px;font-weight:400;color:var(--muted)}.cli-group>p{margin:0 0 16px;font-size:12px;color:var(--muted)}
+.cli-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.cli-empty{padding:20px;border:1px dashed var(--line);border-radius:12px;color:var(--muted);font-size:13px}
+.cli-small-card{border:1px solid var(--line);border-radius:14px;background:var(--panel);overflow:hidden}.cli-small-card[data-default=true]{border-color:#466352}.cli-small-card[data-paused=true]{border-style:dashed}
+.cli-card-open{display:flex;align-items:center;gap:14px;width:100%;min-height:112px;padding:22px;text-align:left;background:transparent;border:0;cursor:pointer}.cli-card-open:hover{background:#22292a}.cli-card-open:focus-visible{outline-offset:-4px}
+.cli-logo{width:44px;height:44px;flex:none;stroke:none;fill:none;border-radius:10px}.cli-card-label{display:flex;flex-direction:column;gap:5px;min-width:0}.cli-card-label strong{font-size:15px;font-weight:600}.cli-card-label>span{color:var(--muted);font-size:12px}
+.cli-card-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 22px 18px;font-size:12px;color:var(--muted);min-height:48px}.cli-card-foot button{min-width:64px;min-height:36px}
+.cli-config{display:flex;flex-direction:column;gap:18px}.cli-config[hidden],#cli-detail[hidden],#cli-overview[hidden],.cli-empty[hidden]{display:none}
+.cli-back{padding:4px 0;margin-bottom:18px;font-size:12px;color:var(--muted)}.cli-config-heading{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:2px}.cli-config-heading h4{font-size:20px;font-weight:600;margin:0}.cli-config-heading>.cli-status{flex-basis:100%;margin:0;color:var(--muted)}
+.cli-config .settings-sec>label{display:block;margin:18px 0 8px;font-size:12px;color:var(--text)}.cli-path-input{width:100%;border:1px solid var(--line);border-radius:8px;padding:10px;background:var(--bg);color:var(--text);font:12px/1.6 ui-monospace,monospace}.cli-config .settings-sec>input+p{margin-top:8px}
+.cli-detail-feedback{white-space:pre-wrap;margin-top:12px!important}.cli-detail-feedback:empty{display:none}.cli-model-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}.cli-model-head h4{margin:0}.cli-model-head h4 span{font-size:12px;font-weight:400;color:var(--muted);margin-left:10px}
+.cli-model-list{padding:0;margin:0;list-style:none;max-height:420px;overflow:auto}.cli-model-item{display:grid;grid-template-columns:minmax(80px,1fr) minmax(100px,1.2fr) minmax(200px,1.8fr);align-items:center;gap:16px;padding:12px 0;border-top:1px solid var(--line);overflow-wrap:anywhere}.cli-model-item strong{font-size:13px;font-weight:500}.cli-model-item code,.cli-model-item span{color:var(--muted);font-size:12px}.cli-model-item span{text-align:right}.cli-config .install-guide{margin-bottom:12px}
+.cli-install-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px}.cli-install-head h4{margin:0}.cli-install-head a{font-size:12px;white-space:nowrap}.cli-install-command{display:flex;align-items:center;gap:12px;padding:12px 14px;margin:10px 0 14px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}.cli-install-command code{flex:1;min-width:0;white-space:pre-wrap;font:12px/1.7 ui-monospace,monospace;user-select:all}.cli-install-command button{flex:none;font-size:12px;min-height:36px}.cli-install-method{margin:0;font-size:13px}
+@media(max-width:640px){.cli-model-item{grid-template-columns:90px 120px minmax(200px,1fr);min-width:470px;gap:12px}.cli-install-command{flex-wrap:wrap}.cli-install-head{align-items:flex-start}}
+@media(max-width:640px){.cli-grid{grid-template-columns:1fr}.cli-card-open{min-height:100px;padding:18px}.cli-card-foot{padding:0 18px 16px}.cli-card-foot button{min-height:44px}.cli-config .cli-actions button,.cli-model-head button{min-height:44px}}
+
+/* Whole-card focus keeps the secondary pause action independent. */
+.settings-head{justify-content:flex-start;padding:8px 16px;min-height:60px}
+#settings-close{min-height:44px;padding:8px 12px;font-size:13px}
+.settings-nav h2.settings-nav-label{font-size:15px;font-weight:600;color:var(--text);padding:0 12px 12px;margin:0}
+.cli-back{min-height:44px;padding:10px 16px;border:1px solid var(--line);border-radius:9px;background:var(--panel);font-size:14px;color:var(--text);margin-bottom:24px}
+.cli-back:hover{border-color:#587867;background:#22392f}
+.cli-small-card{position:relative;transition:background .15s,border-color .15s;cursor:pointer}
+.cli-small-card:hover,.cli-small-card:focus-within{border-color:var(--accent);background:#22312b}
+.cli-card-open{position:static}.cli-card-open:hover{background:transparent}.cli-card-open::after{content:'';position:absolute;inset:0;border-radius:14px}
+.cli-card-open:focus-visible{outline:none}.cli-small-card:has(.cli-card-open:focus-visible){outline:2px solid var(--accent);outline-offset:3px}
+.cli-card-foot button{position:relative;z-index:1}.settings-page-head[hidden]{display:none}
+@media(max-width:640px){.settings-nav h2.settings-nav-label{display:block;grid-column:1/-1;padding:4px 6px 8px}.settings-head{padding:6px 8px}}
+@media(prefers-reduced-motion:reduce){.cli-small-card{transition:none}}
 
 /* Settings own the whole app: the sidebar is hidden (its open/closed state is kept) and main is inert while they are open. */
 #app.settings-on .sidebar,#app.settings-on .overlay,#app.settings-on .overlay.open{display:none}
@@ -107,9 +172,25 @@
 .cl-name{flex:1;min-width:0;overflow-wrap:anywhere;font:11px ui-monospace,monospace}.cl-stat{display:inline-flex;gap:6px;flex:none;font:11px ui-monospace,monospace}
 @media(max-width:720px){.rv-body{flex-direction:column}.rv-list{width:auto;max-height:42%;border-right:0;border-bottom:1px solid var(--line)}.rv-head{padding:12px 14px}.rv-note{padding:8px 14px}}
 @media(max-width:480px){.review-btn span{display:none}.rv-viewhead{padding:8px 12px}}
+.skill-prompt{display:block;width:100%;min-height:320px;max-height:65vh;resize:vertical;margin-top:14px;padding:16px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--text);font:12px/1.85 ui-monospace,monospace;tab-size:2}.skill-prompt:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.roles-list{display:grid;gap:10px;margin-top:18px}.role-card{display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:10px;padding:6px 12px;background:var(--bg)}.role-card:focus-within,.role-card:hover{border-color:var(--accent)}.role-card-main{flex:1;min-width:0;text-align:left;border:0;background:transparent;color:var(--text);padding:12px 4px;cursor:pointer}.role-card-main strong,.role-card-main span{display:block}.role-card-main strong{font-size:14px}.role-card-main span{font-size:12px;line-height:1.7;color:var(--muted);margin-top:5px;overflow-wrap:anywhere}.role-card[data-enabled="false"] strong{color:var(--muted)}.role-card>button.secondary{flex:none;min-height:36px}.role-form{display:grid;gap:16px}.role-form label{display:grid;gap:8px;font-size:12px;min-width:0}.role-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px}.role-form input:not([type="checkbox"]),.role-form textarea,.role-form select{width:100%;min-width:0;border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:var(--bg);color:var(--text);font-family:inherit;font-size:13px;line-height:1.6}.role-form textarea{resize:vertical;line-height:1.7}.role-form input:disabled{opacity:.6}.role-form label.role-enabled{display:flex;align-items:center;gap:8px}.role-form input[type="checkbox"]{accent-color:var(--accent)}.role-form label>.muted{font-size:11px;color:var(--muted)}#roles-feedback:empty,#role-editor-feedback:empty{display:none}#roles-feedback,#role-editor-feedback{margin-top:14px;white-space:pre-wrap}#roles-feedback[data-error="true"],#role-editor-feedback[data-error="true"]{color:#efa7ad}@media(max-width:480px){.role-fields{grid-template-columns:1fr}.role-card{gap:8px}}
 </style>
 </head>
 <body>
+<svg aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden" xmlns="http://www.w3.org/2000/svg"><defs><symbol id="cli-logo-claude" viewBox="0 0 248 248">
+<path d="M52.4285 162.873L98.7844 136.879L99.5485 134.602L98.7844 133.334H96.4921L88.7237 132.862L62.2346 132.153L39.3113 131.207L17.0249 130.026L11.4214 128.844L6.2 121.873L6.7094 118.447L11.4214 115.257L18.171 115.847L33.0711 116.911L55.485 118.447L71.6586 119.392L95.728 121.873H99.5485L100.058 120.337L98.7844 119.392L97.7656 118.447L74.5877 102.732L49.4995 86.1905L36.3823 76.62L29.3779 71.7757L25.8121 67.2858L24.2839 57.3608L30.6515 50.2716L39.3113 50.8623L41.4763 51.4531L50.2636 58.1879L68.9842 72.7209L93.4357 90.6804L97.0015 93.6343L98.4374 92.6652L98.6571 91.9801L97.0015 89.2625L83.757 65.2772L69.621 40.8192L63.2534 30.6579L61.5978 24.632C60.9565 22.1032 60.579 20.0111 60.579 17.4246L67.8381 7.49965L71.9133 6.19995L81.7193 7.49965L85.7946 11.0443L91.9074 24.9865L101.714 46.8451L116.996 76.62L121.453 85.4816L123.873 93.6343L124.764 96.1155H126.292V94.6976L127.566 77.9197L129.858 57.3608L132.15 30.8942L132.915 23.4505L136.608 14.4708L143.994 9.62643L149.725 12.344L154.437 19.0788L153.8 23.4505L150.998 41.6463L145.522 70.1215L141.957 89.2625H143.994L146.414 86.7813L156.093 74.0206L172.266 53.698L179.398 45.6635L187.803 36.802L193.152 32.5484H203.34L210.726 43.6549L207.415 55.1159L196.972 68.3492L188.312 79.5739L175.896 96.2095L168.191 109.585L168.882 110.689L170.738 110.53L198.755 104.504L213.91 101.787L231.994 98.7149L240.144 102.496L241.036 106.395L237.852 114.311L218.495 119.037L195.826 123.645L162.07 131.592L161.696 131.893L162.137 132.547L177.36 133.925L183.855 134.279H199.774L229.447 136.524L237.215 141.605L241.8 147.867L241.036 152.711L229.065 158.737L213.019 154.956L175.45 145.977L162.587 142.787H160.805V143.85L171.502 154.366L191.242 172.089L215.82 195.011L217.094 200.682L213.91 205.172L210.599 204.699L188.949 188.394L180.544 181.069L161.696 165.118H160.422V166.772L164.752 173.152L187.803 207.771L188.949 218.405L187.294 221.832L181.308 223.959L174.813 222.777L161.187 203.754L147.305 182.486L136.098 163.345L134.745 164.2L128.075 235.42L125.019 239.082L117.887 241.8L111.902 237.31L108.718 229.984L111.902 215.452L115.722 196.547L118.779 181.541L121.58 162.873L123.291 156.636L123.14 156.219L121.773 156.449L107.699 175.752L86.304 204.699L69.3663 222.777L65.291 224.431L58.2867 220.768L58.9235 214.27L62.8713 208.48L86.304 178.705L100.44 160.155L109.551 149.507L109.462 147.967L108.959 147.924L46.6977 188.512L35.6182 189.93L30.7788 185.44L31.4156 178.115L33.7079 175.752L52.4285 162.873Z" fill="#D97757"/>
+</symbol><symbol id="cli-logo-kiro" viewBox="0 0 1200 1200">
+<rect width="1200" height="1200" rx="260" fill="#9046FF"/>
+<mask id="mask0_1106_4856" style="mask-type:luminance" maskUnits="userSpaceOnUse" x="272" y="202" width="655" height="796">
+<path d="M926.578 202.793H272.637V997.857H926.578V202.793Z" fill="white"/>
+</mask>
+<g mask="url(#mask0_1106_4856)">
+<path d="M398.554 818.914C316.315 1001.03 491.477 1046.74 620.672 940.156C658.687 1059.66 801.052 970.473 852.234 877.795C964.787 673.567 919.318 465.357 907.64 422.374C827.637 129.443 427.623 128.946 358.8 423.865C342.651 475.544 342.402 534.18 333.458 595.051C328.986 625.86 325.507 645.488 313.83 677.785C306.873 696.424 297.68 712.819 282.773 740.645C259.915 783.881 269.604 867.113 387.87 823.883L399.051 818.914H398.554Z" fill="white"/>
+<path d="M636.123 549.353C603.328 549.353 598.359 510.097 598.359 486.742C598.359 465.623 602.086 448.977 609.293 438.293C615.504 428.852 624.697 424.131 636.123 424.131C647.555 424.131 657.492 428.852 664.447 438.541C672.398 449.474 676.623 466.12 676.623 486.742C676.623 525.998 661.471 549.353 636.375 549.353H636.123Z" fill="black"/>
+<path d="M771.24 549.353C738.445 549.353 733.477 510.097 733.477 486.742C733.477 465.623 737.203 448.977 744.41 438.293C750.621 428.852 759.814 424.131 771.24 424.131C782.672 424.131 792.609 428.852 799.564 438.541C807.516 449.474 811.74 466.12 811.74 486.742C811.74 525.998 796.588 549.353 771.492 549.353H771.24Z" fill="black"/>
+</g>
+</symbol></defs></svg>
+
 <div id="app">
 <div id="overlay" class="overlay"></div>
 <aside id="sidebar" class="sidebar closed" aria-label="项目与对话">
@@ -121,24 +202,85 @@
  <div id="preview-banner" class="preview-banner" role="note" hidden></div>
  <header class="topbar">
   <button id="history" class="icon-button" aria-label="打开 Subagents 列表" title="Subagents"><svg viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h16"/></svg></button>
-  <div class="brand">K</div><div class="title"><h1 id="agent-title">Kiro Subagent</h1><span id="subtitle" class="subtitle"></span></div>
+  <div class="brand">C</div><div class="title"><h1 id="agent-title">Coder-Agents</h1><span id="subtitle" class="subtitle"></span></div>
   <span id="status" class="badge"><i class="dot"></i><span>等待任务</span></span>
   <button id="review-open" class="icon-button review-btn" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="review" aria-label="查看当前工作区 Git 改动" title="查看当前工作区 Git 改动（只读）" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="2"/><circle cx="6" cy="18" r="2"/><circle cx="18" cy="8" r="2"/><path d="M6 8v8m12-6c0 4-6 3-10 6"/></svg><span>改动</span></button>
+  <button id="task-stop" class="text-button" type="button" hidden>停止任务</button>
   <button id="debug-toggle" class="icon-button" aria-label="查看诊断日志" title="诊断日志"><svg viewBox="0 0 24 24"><path d="m8 7-5 5 5 5m8-10 5 5-5 5m-3-13-2 26"/></svg></button>
  </header>
- <div id="scroll" class="scroll-area"><div id="conversation" class="conversation"><div class="empty"><div class="brand">K</div><h2>等待 Kiro 的下一项任务</h2><p>执行开始后，指令、回复和工具调用会显示在这里。</p></div></div></div>
+ <div id="scroll" class="scroll-area"><div id="conversation" class="conversation"><div class="empty"><div class="brand">C</div><h2>开始下一项任务</h2><p>执行开始后，指令、回复和工具调用会显示在这里。</p></div></div></div>
  <button id="latest" hidden>↓ 回到最新消息</button>
  <div id="notice" class="notice" role="alert"></div>
  <div id="copy-status" class="sr-only" role="status" aria-live="polite"></div>
- <div class="composer-wrap"><form id="composer-form" class="composer"><div id="target" class="target" hidden></div><textarea id="prompt" rows="2" aria-label="发送给 Subagent 的消息" placeholder="向这个 Subagent 发送消息…"></textarea><div class="composer-bottom"><span id="composer-hint" role="status" aria-live="polite"></span><select id="model-select" class="cfg" aria-label="模型" title="本次发送使用的模型"></select><select id="effort-select" class="cfg" aria-label="思考强度" title="该模型支持的思考强度"></select><button id="context-ring" class="ctx" type="button" aria-label="当前对话上下文占用"><svg class="ring" viewBox="0 0 24 24" aria-hidden="true"><circle class="track" cx="12" cy="12" r="9.5" pathLength="100"/><circle id="ring-bar" class="bar" cx="12" cy="12" r="9.5" pathLength="100" stroke-dasharray="0 100"/></svg><b id="ctx-text">—</b></button><button id="send" class="send" type="submit" aria-label="发送消息" disabled><svg viewBox="0 0 24 24"><path d="M12 19V5m-6 6 6-6 6 6"/></svg></button></div></form><div id="account" class="account" role="status" aria-live="polite"></div></div>
+ <div class="composer-wrap"><form id="composer-form" class="composer"><div id="target" class="target" hidden></div><textarea id="prompt" rows="2" aria-label="发送给 Subagent 的消息" placeholder="向这个 Subagent 发送消息…"></textarea><div class="composer-bottom"><span id="composer-hint" role="status" aria-live="polite"></span><select id="permission-select" class="cfg" aria-label="Claude 工具权限" title="仅本次任务使用；不绕过 CLI 权限" hidden><option value="dontAsk">使用已有授权</option><option value="acceptEdits">允许文件编辑</option><option value="plan">只读规划</option></select><select id="provider-select" class="cfg" aria-label="CLI 后端" title="新对话使用的 CLI 后端；已有对话固定后端"></select><select id="model-select" class="cfg" aria-label="模型" title="本次发送使用的模型"></select><select id="effort-select" class="cfg" aria-label="思考强度" title="该模型支持的思考强度"></select><button id="context-ring" class="ctx" type="button" aria-label="当前对话上下文占用"><svg class="ring" viewBox="0 0 24 24" aria-hidden="true"><circle class="track" cx="12" cy="12" r="9.5" pathLength="100"/><circle id="ring-bar" class="bar" cx="12" cy="12" r="9.5" pathLength="100" stroke-dasharray="0 100"/></svg><b id="ctx-text">—</b></button><button id="send" class="send" type="submit" aria-label="发送消息" disabled><svg viewBox="0 0 24 24"><path d="M12 19V5m-6 6 6-6 6 6"/></svg></button></div></form><div id="account" class="account" role="status" aria-live="polite"></div></div>
  <span id="connection" hidden>正在连接…</span>
- <section id="debug" class="debug" hidden aria-label="诊断日志"><div class="debug-head"><h2>执行记录</h2><button id="debug-close" class="text-button">返回对话</button></div><details><summary id="raw-title">原始执行事件</summary><pre id="raw"></pre></details><details><summary>连接与诊断日志</summary><pre id="diagnostics"></pre></details></section>
+ <section id="debug" class="debug" hidden aria-label="诊断日志"><div class="debug-head"><h2>执行记录</h2><button id="diagnostics-copy" class="text-button" type="button">复制诊断</button><button id="debug-close" class="text-button">返回对话</button></div><details><summary id="raw-title">原始执行事件</summary><pre id="raw"></pre></details><details><summary>连接与诊断日志</summary><pre id="diagnostics"></pre></details></section>
 </main>
-<section id="settings" class="settings" hidden role="dialog" aria-modal="true" aria-labelledby="settings-title"><div id="settings-head" class="settings-head"><h2 id="settings-title">设置</h2><button id="settings-close" class="text-button" type="button">返回对话</button></div><div id="settings-body" class="settings-body" tabindex="-1"><div class="settings-inner">
-<section class="settings-sec" aria-labelledby="temp-title"><h3 id="temp-title">临时文件</h3><p class="lead">所有对话的受管理测试临时文件。历史对话和执行记录日志不会被删除。</p><p id="temp-summary" class="temp-scope" role="status">正在读取临时文件概览…</p><div class="temp-actions"><button id="temp-all" class="primary" type="button" disabled>清理全部临时文件</button><button id="temp-pick" class="secondary" type="button" aria-haspopup="dialog" disabled>选择对话…</button></div><div id="temp-feedback" class="temp-feedback" hidden tabindex="-1"></div></section>
-<section class="settings-sec" aria-labelledby="svc-title"><h3 id="svc-title">服务与资源</h3><p id="memory">读取资源信息…</p><p class="muted">关闭面板且没有运行中任务时，空闲 2 分钟后退出 Python 服务。固定入口可随时重新启动。</p><p id="retention-note">读取历史保留设置…</p><p id="cleanup-status" class="muted"></p><p id="log-root" class="muted"></p><div><button id="stop-viewer" type="button" class="close-service" title="结束 Python 面板服务，运行中的 Kiro 任务继续执行"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg><span>关闭服务</span></button></div></section>
-</div></div>
-<div id="pick-backdrop" class="pick-backdrop" hidden><div id="pick" class="pick" role="dialog" aria-modal="true" aria-labelledby="pick-title" aria-describedby="pick-desc" tabindex="-1"><h3 id="pick-title">选择对话，清理其临时文件</h3><p id="pick-desc" class="muted">默认全选。只清理所选对话的受管理临时文件，历史对话和执行日志保留；运行中的任务与未验收的失败/中断任务会被跳过。</p><div class="pick-tools"><button id="pick-all" class="secondary" type="button">全选</button><button id="pick-none" class="secondary" type="button">全不选</button><span id="pick-count" role="status" aria-live="polite"></span></div><div id="pick-list" class="pick-list"></div><p id="pick-error" class="pick-error" role="alert" hidden></p><div class="pick-foot"><button id="pick-cancel" class="secondary" type="button">取消</button><button id="pick-ok" class="primary" type="button" disabled>清理所选临时文件</button></div></div></div></section>
+<section id="settings" class="settings" hidden role="dialog" aria-modal="true" aria-labelledby="settings-title">
+<div id="settings-head" class="settings-head"><button id="settings-close" class="text-button" type="button">← 返回对话</button></div>
+<div id="settings-body" class="settings-body" tabindex="-1">
+ <div id="settings-nav" class="settings-nav" role="tablist" aria-label="设置分类" aria-orientation="vertical">
+  <h2 id="settings-title" class="settings-nav-label">设置</h2>
+  <button id="settings-tab-cli" type="button" role="tab" aria-selected="true" aria-controls="settings-page-cli" tabindex="0">CLI 连接</button>
+  <button id="settings-tab-skill" type="button" role="tab" aria-selected="false" aria-controls="settings-page-skill" tabindex="-1">Codex 技能</button>
+  <button id="settings-tab-roles" type="button" role="tab" aria-selected="false" aria-controls="settings-page-roles" tabindex="-1">Subagent 角色</button>
+  <button id="settings-tab-storage" type="button" role="tab" aria-selected="false" aria-controls="settings-page-storage" tabindex="-1">存储与清理</button>
+  <button id="settings-tab-service" type="button" role="tab" aria-selected="false" aria-controls="settings-page-service" tabindex="-1">服务与资源</button>
+  <button id="settings-tab-help" type="button" role="tab" aria-selected="false" aria-controls="settings-page-help" tabindex="-1">帮助</button>
+ </div>
+ <div id="settings-content" class="settings-content"><div class="settings-inner">
+  <div id="settings-page-cli" class="settings-page" role="tabpanel" aria-labelledby="settings-tab-cli" tabindex="0">
+   <header id="cli-overview-head" class="settings-page-head"><h3 id="cli-title">CLI 连接</h3><p>连接本机的 AI 工具，选择后续新对话使用的默认后端。</p></header>
+   <div id="cli-overview">
+    <section class="cli-group" aria-labelledby="cli-connected-title"><h4 id="cli-connected-title">已连接 <span id="cli-connected-count"></span></h4><div id="cli-connected-list" class="cli-grid"></div><p id="cli-connected-empty" class="cli-empty">还没有连接的 CLI，从下方选择一个开始。</p></section>
+    <section class="cli-group" aria-labelledby="cli-disconnected-title"><h4 id="cli-disconnected-title">未连接 <span id="cli-disconnected-count"></span></h4><div id="cli-disconnected-list" class="cli-grid"></div></section>
+   </div>
+   <div id="cli-detail" hidden><button id="cli-config-back" class="text-button cli-back" type="button">← 所有 CLI</button><div id="cli-list"></div></div>
+   <p id="cli-overview-error" role="alert" hidden></p>
+  </div>
+  <div id="settings-page-storage" class="settings-page" role="tabpanel" aria-labelledby="settings-tab-storage" tabindex="0" hidden>
+   <header class="settings-page-head"><h3>存储与清理</h3><p>统一清理 Claude 和 Kiro 的任务结果、日志与临时文件。</p></header>
+   <section class="settings-sec" aria-labelledby="temp-title"><h4 id="temp-title">任务数据</h4><p class="lead">清理已结束任务的结果、日志和受管理临时文件，仅跳过正在进行的任务。项目代码和测试脚本保留。</p><p id="temp-summary" class="temp-scope" role="status">进入此页后读取任务数据概览。</p><div class="temp-actions"><button id="temp-all" class="primary" type="button" disabled>清理全部任务数据</button><button id="temp-pick" class="secondary" type="button" aria-haspopup="dialog" disabled>选择对话…</button></div><div id="temp-feedback" class="temp-feedback" hidden tabindex="-1"></div></section>
+   <section class="settings-sec" aria-labelledby="storage-history-title"><h4 id="storage-history-title">历史与日志</h4><p id="retention-note">读取历史保留设置…</p><p id="log-root" class="muted"></p></section>
+  </div>
+  <div id="settings-page-service" class="settings-page" role="tabpanel" aria-labelledby="settings-tab-service" tabindex="0" hidden>
+   <header class="settings-page-head"><h3 id="svc-title">服务与资源</h3><p>查看面板的资源占用与运行行为。</p></header>
+   <section class="settings-sec" aria-labelledby="service-status-title"><h4 id="service-status-title">运行状态</h4><p id="memory">读取资源信息…</p><p id="cleanup-status" class="muted"></p></section>
+   <section class="settings-sec" aria-labelledby="service-idle-title"><h4 id="service-idle-title">空闲退出</h4><p>关闭面板且没有运行中任务时，空闲 2 分钟后退出 Python 服务。固定入口可随时重新启动。</p></section>
+   <section class="settings-sec service-stop" aria-labelledby="service-stop-title"><div><h4 id="service-stop-title">关闭面板服务</h4><p class="muted">结束面板 Python 服务，正在运行的 CLI 任务继续执行。</p></div><button id="stop-viewer" type="button" class="close-service"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg><span>关闭服务</span></button></section>
+  </div>
+  <div id="settings-page-roles" class="settings-page" role="tabpanel" aria-labelledby="settings-tab-roles" tabindex="0" hidden>
+   <header class="settings-page-head"><h3>Subagent 角色</h3><p>配置全局角色的职责与执行方式，Codex 在委派时读取最新配置。</p></header>
+   <section class="settings-sec"><div class="cli-install-head"><h4>全局角色</h4><div class="cli-actions"><button id="roles-refresh" class="secondary" type="button">刷新列表</button><button id="role-new" class="primary" type="button" disabled>新增角色</button></div></div><p class="muted">编码负责业务实现，测试负责测试脚本与执行反馈。工作顺序、修复协调及最终验收由 Codex 安排。</p><div id="roles-list" class="roles-list"></div><p id="roles-feedback" role="status" aria-live="polite"></p></section>
+   <section id="role-editor" class="settings-sec" aria-labelledby="role-editor-title" hidden>
+    <h4 id="role-editor-title">编辑角色</h4>
+    <form id="role-form" class="role-form">
+     <div class="role-fields"><label>名称<input id="role-name" required maxlength="80" autocomplete="off"></label><label>角色 ID<input id="role-id" required maxlength="64" pattern="[a-z][a-z0-9-]*" placeholder="例如 frontend-dev" autocomplete="off"></label></div>
+     <label>职责简介<input id="role-description" required maxlength="1000" placeholder="帮助 Codex 判断何时使用这个角色"></label>
+     <div class="role-fields"><label>CLI<select id="role-provider"><option value="claude">Claude Code</option><option value="kiro">Kiro CLI</option></select></label><label>模型<select id="role-model" required disabled><option value="">请选择模型</option></select></label><label>思考强度<select id="role-effort" disabled><option value="">不设置</option></select></label></div>
+     <p id="role-model-note" class="muted" role="status">从所选 CLI 的模型列表中选择，思考强度随模型更新。</p>
+     <label>执行说明<textarea id="role-instructions" rows="5" required maxlength="16000" placeholder="描述这个角色应如何完成工作"></textarea></label>
+     <label>工作约束<span class="muted">每行一项</span><textarea id="role-constraints" rows="4" placeholder="例如：只修改测试脚本，不修改业务实现"></textarea></label>
+     <p class="muted">工作约束用于指导执行，工具权限仍由 CLI 与本次任务授权控制。</p>
+     <label>交付要求<span class="muted">每行一项</span><textarea id="role-deliverables" rows="3" placeholder="例如：执行命令、测试结果和失败原因"></textarea></label>
+     <label class="role-enabled"><input id="role-enabled" type="checkbox" checked>启用此角色</label>
+     <div class="cli-actions"><button id="role-save" class="primary" type="submit">保存角色</button><button id="role-cancel" class="secondary" type="button">取消</button><button id="role-delete" class="secondary" type="button" hidden>删除角色</button></div><p id="role-editor-feedback" role="status" aria-live="polite"></p>
+    </form>
+   </section>
+  </div>
+  <div id="settings-page-skill" class="settings-page" role="tabpanel" aria-labelledby="settings-tab-skill" tabindex="0" hidden>
+   <header class="settings-page-head"><h3>Codex 技能</h3><p>让 Codex 调用本机 Claude Code 或 Kiro CLI，委派编码与审阅任务。</p></header>
+   <section class="settings-sec"><p id="skill-setup-instruction">在此项目中与codex对话，发送以下提示词，配置全局skill。</p></section>
+   <section class="settings-sec" aria-labelledby="skill-prompt-title"><div class="cli-install-head"><h4 id="skill-prompt-title">配置提示词</h4><button id="skill-copy" class="secondary" type="button">复制提示词</button></div><textarea id="skill-prompt" class="skill-prompt" rows="20" readonly aria-label="全局 Skill 配置提示词" spellcheck="false"></textarea></section>
+  </div>
+  <div id="settings-page-help" class="settings-page" role="tabpanel" aria-labelledby="settings-tab-help" tabindex="0" hidden>
+   <header class="settings-page-head"><h3>帮助</h3><p>连接、模型与对话的常见问题。</p></header>
+   <section class="settings-sec"><h4>使用定位</h4><p>本项目是 Subagent 工作台，仅用于执行主 Agent 委派的任务，不建议直接作为主 Agent 独立完成开发。建议由 Codex 等主 Agent 拆解需求、派发任务、协调编码与测试，并审核和最终验收。面板中的直接消息用于补充指令和排查问题。</p></section>
+   <section class="settings-sec help-questions" aria-label="常见问题"><details open><summary>已连接，为什么模型调用仍然失败？</summary><p>连接会检查 CLI 版本和登录状态，模型请求还需要网络、模型权限与可用额度。在 CLI 连接页点击“测试调用”可单独验证，会消耗少量额度。</p></details><details><summary>为什么没有显示其他 Kiro 模型？</summary><p>连接成功后会自动读取账户模型目录。读取失败时，在 CLI 连接页点击“读取模型目录”重试；未读取前只显示固定默认模型。</p></details><details><summary>切换默认 CLI 会改变已有对话吗？</summary><p>默认 CLI 用于新对话，已有对话继续使用原来的后端。断开连接后历史仍可查看，继续发送前需重新连接对应 CLI。</p></details><details><summary>Claude 的模型列表与 Kiro 有什么区别？</summary><p>Claude 从当前配置的 API 地址读取模型目录，思考强度为 CLI 配置选项；Kiro 从当前账户读取模型目录及思考强度。</p></details></section>
+  </div>
+ </div></div>
+</div>
+<div id="pick-backdrop" class="pick-backdrop" hidden><div id="pick" class="pick" role="dialog" aria-modal="true" aria-labelledby="pick-title" aria-describedby="pick-desc" tabindex="-1"><h3 id="pick-title">选择对话，清理任务数据</h3><p id="pick-desc" class="muted">默认全选。清理所选对话中已结束任务的结果、日志和受管理临时文件；仅跳过正在进行的任务，项目文件保留。</p><div class="pick-tools"><button id="pick-all" class="secondary" type="button">全选</button><button id="pick-none" class="secondary" type="button">全不选</button><span id="pick-count" role="status" aria-live="polite"></span></div><div id="pick-list" class="pick-list"></div><p id="pick-error" class="pick-error" role="alert" hidden></p><div class="pick-foot"><button id="pick-cancel" class="secondary" type="button">取消</button><button id="pick-ok" class="primary" type="button" disabled>清理所选任务数据</button></div></div></div></section>
 <section id="review" class="review" hidden role="dialog" aria-modal="true" aria-labelledby="review-title" data-mode="changes">
  <div class="rv-head"><h2 id="review-title">当前工作区改动</h2><button id="review-refresh" class="text-button" type="button">刷新</button><button id="review-close" class="text-button" type="button">关闭</button></div>
  <p id="review-note" class="rv-note" hidden></p>
@@ -158,6 +300,8 @@ const VISIBLE=5,LAYOUT_KEY='kiro.sidebar.v1',SELECTION_KEY='kiro.selection.v1';
 let sel={group:'',source:'',agent:''},currentKey='',lastSignature='',lastSidebar='',timer=null,busy=false,stopped=false,active=false,away=false,posting=false,agentBusy=false;
 let lastData=null,nodes=new Map(),drafts=new Map(),groupsData=[],sourceGroups={},refreshController=null,refreshEpoch=0,sendsDisabled=false,legacyUsed=false;
 const deleting=new Set(),forcedOpen=new Set(),grace=new Map();
+let connectionsRequired=false,cliData=null,cliBusy=false,cliLoading=false;const cliDirty=new Set();
+let providerItems=[],draftProvider='',selectedProvider='',modelsTimer=null,modelsSeq=0;
 let modelsData=null,accountData=null,selectedConfig=null,selectedContext=null,configSignature='',accountBusy=false,accountNote='';const pendingSel=new Map();
 const legacySource=(document.querySelector('meta[name="kiro-initial-source"]')||{}).content||'';
 try{if(location.pathname!=='/'||location.search||location.hash)history.replaceState(null,'','/')}catch{}
@@ -264,10 +408,10 @@ function messageNode(entry,state){
  let node=nodes.get(entry.key);
  if(!node){
   node=document.createElement('article');node.className='message '+entry.kind;
-  const avatar=document.createElement('div');avatar.className='avatar';avatar.textContent='K';
+  const avatar=document.createElement('div');avatar.className='avatar';avatar.textContent=entry.kind==='user'?'你':state.provider==='claude'?'C':'K';
   const content=document.createElement('div');content.className='message-content';
   const meta=document.createElement('div');meta.className='message-meta';
-  const role=document.createElement('strong');role.textContent=entry.kind==='user'?'你':'Kiro';
+  const role=document.createElement('strong');role.textContent=entry.kind==='user'?'你':(state.role_name||state.role_id||'未指定角色')+' · '+(state.provider==='claude'?'Claude':'Kiro');
   const time=document.createElement('time');meta.append(role,time);
   if(entry.kind==='assistant'){
    const copy=document.createElement('button');copy.type='button';copy.className='copy-reply';copy.textContent='复制回复';copy.setAttribute('aria-label','复制整条回复（Markdown 原文）');
@@ -1082,17 +1226,18 @@ function formatCount(n){return Number(n).toLocaleString('en-US')}
 function summaryItems(s){
  const items=[],result=s.result||'failed';
  items.push({cls:'res '+result,text:(resultMarks[result]||'')+' '+(resultNames[result]||result)});
- if(s.exit_code!==null&&s.exit_code!==undefined&&s.exit_code!==0)items.push({cls:'bad',text:'退出码 '+s.exit_code,title:'Kiro 运行器进程的退出码'});
- if(s.stop_reason&&(s.stop_reason!=='end_turn'||result!=='completed'))items.push({cls:'',text:'停止原因 '+s.stop_reason,title:'Kiro 报告的本轮停止原因'});
+ if(s.exit_code!==null&&s.exit_code!==undefined&&s.exit_code!==0)items.push({cls:'bad',text:'退出码 '+s.exit_code,title:'运行器进程的退出码'});
+ if(s.stop_reason&&(s.stop_reason!=='end_turn'||result!=='completed'))items.push({cls:'',text:'停止原因 '+s.stop_reason,title:'CLI 报告的本轮停止原因'});
  const task=formatDuration(s.task_seconds);
- items.push({cls:task?'':'missing',text:'任务耗时 '+(task||'未知'),title:'从任务启动到结束的实际时间（started_at 到 finished_at），包含模型检查与 Kiro 启动'});
+ items.push({cls:task?'':'missing',text:'任务耗时 '+(task||'未知'),title:'从任务启动到结束的实际时间（started_at 到 finished_at），包含模型检查与 CLI 启动'});
  const kiro=formatDuration(typeof s.kiro_elapsed_ms==='number'?s.kiro_elapsed_ms/1000:null);
  if(kiro)items.push({cls:'',text:'Kiro 回合 '+kiro,title:'Kiro 在 turn_completion 事件中报告的本回合耗时'});
  const t=s.tokens;
  if(t&&(t.input!=null||t.output!=null||t.total!=null)){
   const parts=[];if(t.input!=null)parts.push('输入 '+formatCount(t.input));if(t.output!=null)parts.push('输出 '+formatCount(t.output));if(t.total!=null)parts.push('合计 '+formatCount(t.total));
-  items.push({cls:'',text:'Token '+parts.join(' · '),title:'Kiro 为本轮明确报告的 Token 用量'});
- }else items.push({cls:'missing',text:'Token 未提供',title:'Kiro 没有报告本轮 Token 消耗；面板不会估算'});
+  items.push({cls:'',text:'Token '+parts.join(' · '),title:'CLI 为本轮明确报告的 Token 用量'});
+ }else items.push({cls:'missing',text:'Token 未提供',title:'CLI 没有报告本轮 Token 消耗；面板不会估算'});
+ if(typeof s.cost_usd==='number')items.push({cls:'',text:'报告费用 $'+s.cost_usd.toFixed(4),title:'Claude CLI 报告的费用值，不代表订阅账户实际扣费'});
  if(s.credits&&typeof s.credits.usage==='number'){const unit=s.credits.unit==='credit'||!s.credits.unit?(s.credits.usage===1?'credit':'credits'):s.credits.unit;items.push({cls:'',text:Number(s.credits.usage.toPrecision(3))+' '+unit,title:'Kiro 报告的本轮额度消耗，不是 Token'})}
  if(typeof s.context_percent==='number')items.push({cls:'',text:'上下文占用 '+s.context_percent+'%',title:'会话上下文窗口占用率，不是本轮消耗的 Token'});
  return items;
@@ -1113,7 +1258,7 @@ function timeline(turn){
  const events=[];for(const line of (turn.events||'').split('\n')){try{if(line.trim())events.push(JSON.parse(line))}catch{}}
  let boundary=-1;
  for(let i=0;i<events.length;i++)if(updateOf(events[i])._meta?.kiro?.kind==='turn_start')boundary=i;
- const fresh=boundary>=0?events.slice(boundary):state.resume_id?events.filter(e=>e.type==='runFinished'):events;
+ const fresh=state.provider==='claude'?events:boundary>=0?events.slice(boundary):state.resume_id?events.filter(e=>e.type==='runFinished'):events;
  for(const event of fresh){
   count++;const update=updateOf(event),kind=update.sessionUpdate||update.type||event.type||'';
   if(event.type==='runFinished')finalText=event.data?.finalText||'';
@@ -1131,11 +1276,11 @@ function timeline(turn){
  return {entries:result,count:events.length};
 }
 function emptyConversation(group,loading){
- const root=$('conversation');root.replaceChildren();const box=document.createElement('div');box.className='empty';const logo=document.createElement('div');logo.className='brand';logo.textContent='K';const h=document.createElement('h2');const p=document.createElement('p');
+ const root=$('conversation');root.replaceChildren();const box=document.createElement('div');box.className='empty';const logo=document.createElement('div');logo.className='brand';logo.textContent='C';const h=document.createElement('h2');const p=document.createElement('p');
  if(loading){h.textContent='正在载入对话…'}
- else if(group){h.textContent='在“'+group.name+'”开始新对话';p.textContent=group.path?'发送第一条消息时才会在 '+group.path+' 启动 Kiro。':(group.note||'')}
- else{h.textContent='把一项任务交给 Kiro';p.textContent='点击项目右侧的 + 开始新对话。'}
- box.append(logo,h,p);root.append(box);
+ else if(group){h.textContent='在“'+group.name+'”开始新对话';p.textContent=group.path?'发送第一条消息时才会在 '+group.path+' 启动所选 CLI Agent。':(group.note||'')}
+ else{h.textContent='把一项任务交给 CLI Agent';p.textContent='点击项目右侧的 + 开始新对话。'}
+ box.append(logo,h,p);if(!loading){const note=document.createElement('p');note.textContent='本项目仅作为 Subagent 使用，建议由 Codex 等主 Agent 派发任务并验收，不建议直接独立完成开发。';box.append(note)}root.append(box);
 }
 function render(data){
  const agent=data.selected;if(!agent){emptyConversation(groupOf(sel.group));currentKey='';nodes=new Map();$('raw').textContent='';$('diagnostics').textContent='';return}
@@ -1143,8 +1288,8 @@ function render(data){
  if(newAgent){nodes=new Map();currentKey=agent.key;away=false}
  const fragment=document.createDocumentFragment(),divider=document.createElement('div');divider.className='date-line';divider.textContent=new Date(agent.created_at).toLocaleDateString('zh-CN',{month:'long',day:'numeric'});fragment.append(divider);
  let raw='',diagnostics='',count=0;
- for(const turn of data.turns){const content=timeline(turn);count+=content.count;for(const entry of content.entries)fragment.append(entry.kind==='tool'?toolNode(entry):entry.kind==='summary'?summaryNode(entry):messageNode(entry,turn.state));raw+='── '+turn.state.id+' ──\n'+turn.events+'\n';diagnostics+='── '+turn.state.id+' ──\n'+turn.diagnostics+'\n'}
- if(agentBusy){const end=document.createElement('div');end.className='turn-end';end.setAttribute('role','status');end.textContent=agent.status==='checking'?'正在确认模型与连接…':'Kiro 正在执行任务…';fragment.append(end)}$('conversation').replaceChildren(fragment);
+ for(const turn of data.turns){const content=timeline(turn);count+=content.count;for(const entry of content.entries)fragment.append(entry.kind==='tool'?toolNode(entry):entry.kind==='summary'?summaryNode(entry):messageNode(entry,turn.state));raw+='── '+turn.state.id+' ──\n'+turn.events+'\n';diagnostics+='── '+turn.state.id+' ──\n'+(turn.diagnostic?[turn.diagnostic.message,turn.diagnostic.next_step,turn.diagnostic.detail].filter(Boolean).join('\n'):turn.diagnostics)+'\n'}
+ if(agentBusy){const end=document.createElement('div');end.className='turn-end';end.setAttribute('role','status');end.textContent=agent.status==='checking'?'正在确认模型与连接…':'CLI 正在执行任务…';fragment.append(end)}$('conversation').replaceChildren(fragment);
  $('raw').textContent=raw;$('raw-title').textContent='原始执行事件 · '+count+' 条';$('diagnostics').textContent=diagnostics;
  if(newAgent||nearBottom&&!away){requestAnimationFrame(()=>{scroller.scrollTop=scroller.scrollHeight});$('latest').hidden=true}else{scroller.style.scrollBehavior='auto';scroller.scrollTop=previousTop;scroller.style.scrollBehavior='';$('latest').hidden=false}
 }
@@ -1160,8 +1305,8 @@ function visibleRows(group){const expanded=moreOpen(group.id);return group.conve
 function select(next,options={}){
  if(reviewOpen())closeReview({restore:false});
  if(options.save!==false&&sel.group){const text=$('prompt').value;if(text)drafts.set(draftKey(sel),text);else drafts.delete(draftKey(sel))}
- sel={group:next.group,source:next.source||'',agent:next.agent||''};refreshEpoch++;writeStore('sessionStorage',SELECTION_KEY,sel);
- currentKey='';lastSignature='';lastSidebar='';nodes=new Map();agentBusy=sel.agent!=='';selectedConfig=null;selectedContext=null;
+ sel={group:next.group,source:next.source||'',agent:next.agent||''};++modelsSeq;modelsData=null;configSignature='';clearTimeout(modelsTimer);refreshEpoch++;writeStore('sessionStorage',SELECTION_KEY,sel);
+ currentKey='';lastSignature='';lastSidebar='';nodes=new Map();agentBusy=sel.agent!=='';selectedConfig=null;selectedContext=null;selectedProvider='';accountData=null;accountNote='';
  $('prompt').value=drafts.get(draftKey(sel))||'';$('notice').textContent='';$('raw').textContent='';$('diagnostics').textContent='';
  emptyConversation(sel.agent===''?groupOf(sel.group):null,sel.agent!=='');lastData=null;renderSettings(null);
  if(innerWidth<=640)sidebar(false);
@@ -1172,7 +1317,7 @@ function rowNode(group,conv){
  const b=document.createElement('button');b.type='button';b.className='run'+(mine?' selected':'');b.dataset.id=conv.id;b.dataset.source=conv.source;if(mine)b.setAttribute('aria-current','true');
  const dot=document.createElement('i');dot.className='agent-dot '+conv.status;dot.setAttribute('aria-hidden','true');
  const title=document.createElement('span');title.className='run-title';title.textContent=conv.title;
- const status=document.createElement('span');status.className='run-status';status.textContent=names[conv.status]||conv.status;
+ const status=document.createElement('span');status.className='run-status';status.textContent=(conv.role_name||conv.role_id||'未指定角色')+' · '+(names[conv.status]||conv.status);
  b.title=conv.title+' · '+(names[conv.status]||conv.status);b.append(dot,title,status);b.onclick=()=>select({group:group.id,source:conv.source,agent:conv.id});
  const remove=document.createElement('button');remove.type='button';remove.className='delete-agent';remove.disabled=conv.deletable!==true||deleting.has(convKey(conv))||posting;remove.title=conv.deletable?'直接删除对话':'任务执行中，结束后可删除';remove.setAttribute('aria-label','删除对话：'+conv.title);remove.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7m4-7v7"/></svg>';remove.onclick=()=>deleteConversation(group,conv,remove);
  row.append(b,remove);return row;
@@ -1200,7 +1345,7 @@ function groupNode(group,index){
  section.append(head,body);return section;
 }
 function renderSidebar(){
- const key=JSON.stringify([sel,posting,[...deleting],layout,[...forcedOpen],groupsData.map(g=>[g.id,g.name,g.path,g.can_create,g.exists,g.note,g.conversations.map(c=>[c.source,c.id,c.status,c.title,c.deletable])])]);
+ const key=JSON.stringify([sel,posting,[...deleting],layout,[...forcedOpen],groupsData.map(g=>[g.id,g.name,g.path,g.can_create,g.exists,g.note,g.conversations.map(c=>[c.source,c.id,c.status,c.title,c.deletable,c.role_id,c.role_name])])]);
  if(key===lastSidebar)return;lastSidebar=key;
  const nav=$('run-list');nav.replaceChildren();$('agent-count').textContent=groupsData.length;
  groupsData.forEach((group,index)=>nav.append(groupNode(group,index)));
@@ -1208,8 +1353,8 @@ function renderSidebar(){
 // Title, subtitle and the line above the composer always name the project and directory that a send will use.
 function showTarget(agent){
  const group=groupOf(sel.group),draft=sel.agent==='',cwd=draft?(group&&group.path)||'':(agent&&agent.cwd)||(group&&group.path)||'';
- $('agent-title').textContent=draft?(group?'新对话 · '+group.name:'Kiro Subagent'):agent?agent.title:'正在载入…';$('agent-title').title=agent?agent.title:'';
- $('subtitle').textContent=selectionLabel()+(group?' · '+group.name:'')+(cwd?' · '+cwd:'');$('subtitle').title=cwd;
+ $('agent-title').textContent=draft?(group?'新对话 · '+group.name:'Coder-Agents'):agent?agent.title:'正在载入…';$('agent-title').title=agent?agent.title:'';
+ $('subtitle').textContent=(agent?(agent.role_name||agent.role_id||'未指定角色')+' · ':'')+selectionLabel()+(group?' · '+group.name:'')+(cwd?' · '+cwd:'');$('subtitle').title=cwd;
  const target=$('target');target.replaceChildren();
  if(group&&cwd){const label=document.createElement('b');label.textContent=draft?'新对话将在此项目启动':'在原目录继续';const where=document.createElement('span');where.textContent=group.name+' · '+cwd;where.title=cwd;target.append(label,where)}
  else if(group&&group.note){const label=document.createElement('b');label.textContent=group.note;target.append(label)}
@@ -1258,16 +1403,16 @@ function schedule(){clearTimeout(timer);if(stopped||document.hidden)return;timer
 function resizeInput(){const input=$('prompt');input.style.height='auto';input.style.height=Math.min(input.scrollHeight,180)+'px';updateComposer()}
 function updateComposer(){
  const group=groupOf(sel.group),draft=sel.agent==='',blocked=sendsDisabled||!sel.group||(draft&&!(group&&group.can_create)),locked=stopped||blocked||deleting.has(selKey());
- const why=sendBlockReason();
+ const why=lastData?.selected?.role_error||sendBlockReason();
  $('send').disabled=locked||posting||agentBusy||!$('prompt').value.trim()||!!why;$('prompt').disabled=locked;
- renderConfig(locked||posting||agentBusy);renderContext();renderAccount();
- $('composer-hint').textContent=stopped?'服务已关闭':sendsDisabled?'测试预览：发送已禁用':draft&&group&&!group.can_create?group.note:posting?'正在发送…，Kiro 确认模型与强度后才会执行':agentBusy?'正在执行本轮任务，模型与强度已锁定，你可以先编辑下一条消息':why||'';
+ renderConfig(locked||posting||agentBusy);renderContext();renderAccount();$('task-stop').hidden=!agentBusy||!sel.agent;$('task-stop').disabled=stopped||posting;$('permission-select').hidden=currentProvider()!=='claude';$('permission-select').disabled=locked||posting||agentBusy;
+ $('composer-hint').textContent=stopped?'服务已关闭':sendsDisabled?'测试预览：发送已禁用':draft&&group&&!group.can_create?group.note:posting?'正在启动所选 CLI…':agentBusy?'正在执行本轮任务，模型与强度已锁定，你可以先编辑下一条消息':why||'';
  $('prompt').placeholder=draft?'分派一项任务，创建新的 Subagent…':'向这个 Subagent 发送消息…';
 }
 async function refresh(){
  if(busy||stopped)return;busy=true;const requestEpoch=refreshEpoch,requested={...sel};refreshController=new AbortController();
  try{
-  const query=new URLSearchParams();if(requested.group)query.set('group',requested.group);if(requested.source)query.set('source',requested.source);if(requested.agent)query.set('agent',requested.agent);
+  const query=new URLSearchParams();if(requested.group)query.set('group',requested.group);if(requested.source)query.set('source',requested.source);if(requested.agent)query.set('agent',requested.agent);if(!requested.agent&&draftProvider)query.set('provider',draftProvider);
   const response=await fetch('/api'+(query.toString()?'?'+query:''),{cache:'no-store',signal:refreshController.signal});if(!response.ok)throw new Error('HTTP '+response.status);const data=await response.json();
   if(requestEpoch!==refreshEpoch){setTimeout(refresh,0);return} // the selection changed while this was in flight: its answer is stale
   const agent=data.selected;
@@ -1277,8 +1422,15 @@ async function refresh(){
   const banner=$('preview-banner');banner.hidden=!(data.viewer&&data.viewer.preview);banner.textContent=data.viewer&&data.viewer.preview||'';
   const catalog=data.catalog||{},note=$('catalog-note');note.hidden=!catalog.message;note.textContent=catalog.message?'Codex 项目列表：'+catalog.message:'';
   active=data.viewer?.active_tasks>0;agentBusy=!!agent&&['checking','running'].includes(agent.status);
-  selectedConfig=agent&&agent.config||null;selectedContext=agent&&agent.context||null;accountData=data.viewer&&data.viewer.account||null;renderSidebar();$('log-root').textContent=data.root||'';
-  $('memory').textContent=data.viewer?.memory_mb==null?'当前系统暂不提供内存读数':'面板服务 '+data.viewer.memory_mb+' MB（不含浏览器和 Kiro）';
+  connectionsRequired=!!data.viewer?.connections_required;
+  providerItems=data.viewer?.providers||providerItems;
+  if(!draftProvider)draftProvider=data.viewer?.default_provider||(connectionsRequired?'':'kiro');selectedProvider=agent?.provider||'';
+  if(providerReady()&&(!modelsData||(modelsData.provider||'kiro')!==currentProvider()))loadModels(false);
+  if(!providerReady())modelsData=null;
+  selectedConfig=agent&&agent.config||null;selectedContext=agent&&agent.context||null;
+  const account=data.viewer&&data.viewer.account||null;if(currentProvider()===(agent?.provider||draftProvider||data.viewer?.default_provider||'kiro'))accountData=account;
+  renderSidebar();$('log-root').textContent=data.root||'';
+  $('memory').textContent=data.viewer?.memory_mb==null?'当前系统暂不提供内存读数':'面板服务 '+data.viewer.memory_mb+' MB（不含浏览器和 CLI）';
   const cleanup=data.viewer?.cleanup;$('cleanup-status').textContent=cleanup?.checked_at?'最近清理：'+new Date(cleanup.checked_at).toLocaleString('zh-CN')+' · 删除 '+cleanup.deleted_conversations+' 条对话'+(cleanup.errors?.length?' · '+cleanup.errors.length+' 个来源清理失败，悬停查看原因':''):'';$('cleanup-status').title=cleanup?.errors?.length?JSON.stringify(cleanup.errors):'';
   lastData=data;renderRetention(data.viewer);renderSettings(data);
   showTarget(agent);
@@ -1298,10 +1450,10 @@ async function sendMessage(event){
  let heldNote='';
  const target={...sel},targetKey=draftKey(target);posting=true;$('notice').textContent='';lastSidebar='';renderSidebar();updateComposer();
  try{
-  const response=await fetch('/api/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({group:target.group,source:target.source||null,agent:target.agent||null,text,model:choice.model,effort:choice.effort})});const result=await response.json();if(!response.ok)throw new Error(result.error||'发送失败');
+  const response=await fetch('/api/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({group:target.group,source:target.source||null,agent:target.agent||null,provider:currentProvider(),text,model:choice.model,effort:choice.effort,...(currentProvider()==='claude'?{permission_mode:$('permission-select').value}:{})})});const result=await response.json();if(!response.ok)throw new Error(result.error||'发送失败');
   grace.set(result.source+':'+result.agent_id,Date.now()+30000);
   // 202 (forwarded:false): Kiro is still starting. The original text is held, keyed by the new run, until polling shows prompt_forwarded.
-  if(result.forwarded===false){addHold({text,originKey:targetKey,group:target.group,source:result.source,agent:result.agent_id,runId:result.run_id,choice,at:Date.now()});heldNote='Kiro 仍在启动，确认收到前会保留原文；若启动失败会放回输入框，不会自动重发'}
+  if(result.forwarded===false){addHold({text,originKey:targetKey,group:target.group,source:result.source,agent:result.agent_id,runId:result.run_id,choice,at:Date.now()});heldNote='CLI 仍在启动，收到状态前会保留原文；请查看运行日志，不会自动重发'}
   // Only the text that was sent is removed. Whatever was typed into the same draft while the request ran stays.
   if(draftKey(sel)===targetKey){ // looking at the target again (possibly after switching away and back)
    const left=unsent($('prompt').value,text);drafts.delete(targetKey);pendingSel.delete(targetKey);$('prompt').value='';
@@ -1336,15 +1488,18 @@ function ringModel(percent){
 }
 function clockText(iso){const d=new Date(iso);return iso&&!Number.isNaN(d.getTime())?d.toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}):''}
 function contextTitle(context){
- if(!context||typeof context.percent!=='number')return '当前对话暂无上下文占用报告（Kiro 尚未汇报）';
+ if(!context||typeof context.percent!=='number')return '当前对话暂无上下文占用报告（CLI 尚未汇报）';
  const when=clockText(context.reported_at);
  return '上下文占用 '+context.percent+'%'+(when?' · 上次报告 '+when:'')+(context.from_previous_turn?'（本轮尚无新报告，沿用上一轮）':'');
 }
 function creditsText(n,max){return Number(n).toLocaleString('en-US',{minimumFractionDigits:max?0:2,maximumFractionDigits:max?2:2})}
-function usageModel(snap){
+function usageModel(snap,now=Date.now()){
  const out={main:'',coverage:null,reset:'',updated:'',note:'',noteBad:false,stale:false};
  if(!snap){out.main='正在读取账户额度…';return out}
+ if(snap.status==='unsupported'){out.main=snap.message||'该后端暂不提供账户额度查询';return out}
  const data=snap.data,err=snap.error;
+ const claude=snap.provider==='claude';
+ if(snap.status==='idle'){out.main=snap.message||'点击刷新读取账户额度';return out}
  if(!data){
   out.main=snap.status==='loading'||snap.refreshing?'正在读取账户额度…':'账户额度暂不可用';
   if(err)out.note='原因：'+err.message;out.noteBad=!!err;
@@ -1353,12 +1508,22 @@ function usageModel(snap){
  }
  const used=typeof data.used==='number'?creditsText(data.used,false):'—';
  const limit=typeof data.limit==='number'?creditsText(data.limit,true):(data.has_limit===false?'不限':'—');
- out.main='Credits '+used+' used / '+limit;
- out.coverage={covered:{text:'covered in plan',cls:'ok',title:'已用额度仍在当前套餐额度内'},
+ out.main=(claude?(data.unit?data.unit+' ':''):'Credits ')+used+' used / '+limit;
+ if(claude){
+  const period={daily:'每日',weekly:'每周',monthly:'每月',total:'总额'}[data.period];
+  if(period)out.main=period+' '+out.main;
+  if(typeof data.balance==='number')out.main='余额 '+creditsText(data.balance,false)+(data.unit?' '+data.unit:'');
+ }
+ out.coverage=claude?null:{covered:{text:'covered in plan',cls:'ok',title:'已用额度仍在当前套餐额度内'},
   exceeded:{text:'已超出套餐额度',cls:'bad',title:'已用额度超过套餐额度，超出部分可能产生额外费用'},
   unlimited:{text:'套餐无额度上限',cls:'warn',title:'Kiro 没有返回套餐额度上限'},
   unknown:{text:'套餐覆盖未知',cls:'warn',title:'Kiro 没有返回足够信息判断套餐覆盖'}}[data.coverage]||{text:'套餐覆盖未知',cls:'warn',title:''};
- out.reset=data.next_reset_md?'下次更新 '+data.next_reset_md:'下次更新 —（Kiro 未返回）';
+ if(claude){
+  const reset=data.next_reset_at?Date.parse(data.next_reset_at):NaN;
+  if(!Number.isFinite(reset))out.reset='重置时间未知';
+  else if(reset<=now)out.reset='等待重置';
+  else{const minutes=Math.ceil((reset-now)/60000);out.reset=Math.floor(minutes/60)+'h '+minutes%60+'m 后重置'}
+ }else out.reset=data.next_reset_md?'下次更新 '+data.next_reset_md:'下次更新 —（Kiro 未返回）';
  const when=clockText(snap.fetched_at);out.updated=when?'更新于 '+when:'';
  if(snap.stale){out.stale=true;out.note='刷新失败，显示的是旧数据'+(when?'（'+when+'）':'')+'：'+(err?err.message:'未知原因');out.noteBad=true}
  else if(snap.rate_limited)out.note='刷新过于频繁，请 '+snap.retry_after+' 秒后再试';
@@ -1368,17 +1533,27 @@ function usageModel(snap){
 function sendBlockReasonFor(models,choice){
  if(!models)return '正在读取账户的模型目录…';
  if(models.status==='error'&&!(models.models||[]).length)return '无法读取模型目录：'+(models.error||'未知原因');
- if(!choice)return '默认模型 Sonnet 5.5 / 中等强度当前不可用，请先选择模型';
+ if(!choice)return '默认模型当前不可用，请先选择模型';
  const entry=(models.models||[]).find(m=>m.id===choice.model);
  if(!entry)return '所选模型当前账户不可用，请更换';
  if(!entry.selectable)return entry.note||'尚未读取到该模型的思考强度信息';
- if(entry.effort.supported&&!entry.effort.levels.includes(choice.effort))return '请选择思考强度';
+ if(entry.effort.supported&&!(choice.effort===null&&entry.effort.source==='cli-options')&&!entry.effort.levels.includes(choice.effort))return '请选择思考强度';
  if(!entry.effort.supported&&choice.effort!==null)return '该模型不支持思考强度';
  return '';
 }
 // </pure-helpers>
 const modelEntry=id=>modelsData&&(modelsData.models||[]).find(m=>m.id===id)||null;
+function currentProvider(){return sel.agent?(selectedProvider||groupsData.flatMap(g=>g.conversations).find(c=>c.id===sel.agent&&c.source===sel.source)?.provider||'kiro'):(draftProvider||'kiro')}
+function chooseProvider(id){
+ if(sel.agent||!providerItems.some(p=>p.id===id&&p.available))return;
+ draftProvider=id;pendingSel.clear();modelsData=null;configSignature='';loadModels(false);
+ accountData=null;
+ accountNote='';refreshAccount();updateComposer();
+}
 function currentSelection(){
+ if(lastData?.selected?.role_id&&selectedConfig)return {model:selectedConfig.model,effort:selectedConfig.effort};
+ if(modelsData&&(modelsData.provider||'kiro')!==currentProvider())return null;
+
  const pending=pendingSel.get(draftKey(sel));if(pending)return pending;
  if(sel.agent&&selectedConfig)return {model:selectedConfig.model,effort:selectedConfig.effort};
  const d=modelsData&&modelsData.default;if(!sel.agent&&d&&d.available)return {model:d.model,effort:d.effort};
@@ -1389,22 +1564,29 @@ function selectionLabel(){
  const entry=modelEntry(choice.model);
  return (entry?entry.name:choice.model)+' · '+(choice.effort?effortLabel(choice.effort)+'强度':entry&&entry.effort.known&&!entry.effort.supported?'无思考强度':'强度未确认');
 }
-function sendBlockReason(){return sendBlockReasonFor(modelsData,currentSelection())}
+function providerReady(){return !connectionsRequired||providerItems.some(p=>p.id===currentProvider()&&p.available)}
+function sendBlockReason(){const choice=currentSelection(),recordedAlias=currentProvider()==='claude'&&selectedConfig&&['sonnet','opus','haiku'].includes(selectedConfig.model)&&choice?.model===selectedConfig.model&&choice?.effort===selectedConfig.effort;return providerReady()?(lastData?.selected?.role_id?(lastData.selected.role_error||''):recordedAlias?'':sendBlockReasonFor(modelsData,choice)):providerItems.some(p=>p.id===currentProvider()&&p.paused)?'此 CLI 已暂停，请在设置中启动，或选择其他 CLI':'请在设置中连接 CLI，或重新连接已失效的路径'}
 function renderConfig(locked){
+ const providerBox=$('provider-select'),provider=currentProvider();
+ const items=providerItems.length?providerItems:[{id:'kiro',name:'Kiro CLI',available:true}];
+ const providerSignature=JSON.stringify([items,provider]);
+ if(providerBox.dataset.signature!==providerSignature){providerBox.dataset.signature=providerSignature;providerBox.replaceChildren();for(const p of items){const o=document.createElement('option');o.value=p.id;o.textContent=p.name+(p.available?'':'（未安装）');o.disabled=!p.available;providerBox.append(o)}providerBox.value=provider}
+ providerBox.disabled=!!locked||!!sel.agent;
+ $('model-select').title=modelsData?.message||'本次发送使用的模型';
  const modelBox=$('model-select'),effortBox=$('effort-select'),choice=currentSelection(),models=modelsData?modelsData.models||[]:[];
  const signature=JSON.stringify([models.map(m=>[m.id,m.selectable,m.effort.levels]),choice]);
  if(signature!==configSignature){
   configSignature=signature;modelBox.replaceChildren();effortBox.replaceChildren();
   for(const m of models){const o=document.createElement('option');o.value=m.id;o.disabled=!m.selectable&&!(choice&&choice.model===m.id);o.textContent=m.name+(m.rate_multiplier!=null?' · ×'+m.rate_multiplier:'')+(m.selectable?'':'（强度信息待读取）');modelBox.append(o)}
-  if(choice&&!modelEntry(choice.model)){const o=document.createElement('option');o.value=choice.model;o.textContent=choice.model+'（当前账户不可用）';o.disabled=true;modelBox.append(o)}
+  if(choice&&!modelEntry(choice.model)){const o=document.createElement('option');o.value=choice.model;o.textContent=choice.model+(currentProvider()==='claude'&&['sonnet','opus','haiku'].includes(choice.model)?'（原对话 CLI 别名）':'（当前目录不可用）');o.disabled=true;modelBox.append(o)}
   if(!choice){const o=document.createElement('option');o.value='';o.textContent=models.length?'请选择模型':'读取模型中…';modelBox.prepend(o)}
   modelBox.value=choice?choice.model:'';
   const entry=choice?modelEntry(choice.model):null;
-  if(entry&&entry.effort.known&&entry.effort.supported){for(const level of entry.effort.levels){const o=document.createElement('option');o.value=level;o.textContent=effortLabel(level)+(level===entry.effort.default?'（默认）':'');effortBox.append(o)}effortBox.value=choice.effort||''}
+  if(entry&&entry.effort.known&&entry.effort.supported){if(entry.effort.source==='cli-options')effortBox.append(new Option('不设置',''));for(const level of entry.effort.levels){const o=document.createElement('option');o.value=level;o.textContent=effortLabel(level)+(level===entry.effort.default?'（默认）':'');effortBox.append(o)}effortBox.value=choice.effort||''}
   else{const o=document.createElement('option');o.value='';o.textContent=entry&&entry.effort.known?'该模型无思考强度':'强度未确认';effortBox.append(o)}
  }
  const entry=choice?modelEntry(choice.model):null;
- modelBox.disabled=!!locked||!models.length;effortBox.disabled=!!locked||!(entry&&entry.effort.known&&entry.effort.supported);
+ modelBox.disabled=!!locked||!!lastData?.selected?.role_id||!models.length;effortBox.disabled=!!locked||!!lastData?.selected?.role_id||!(entry&&entry.effort.known&&entry.effort.supported);
 }
 function chooseModel(id){
  const entry=modelEntry(id);if(!entry||!entry.selectable)return;
@@ -1448,33 +1630,39 @@ function renderAccount(){
  if(model.reset){const t=document.createElement('span');t.textContent=model.reset;box.append(t)}
  if(model.stale){const chip=document.createElement('span');chip.className='chip bad';chip.textContent='旧数据';chip.title='最近一次刷新失败，保留上次成功读取的数据';box.append(chip)}
  if(model.updated){const t=document.createElement('span');t.textContent=model.updated;box.append(t)}
- const refresh=document.createElement('button');refresh.type='button';refresh.className='refresh';refresh.textContent=accountBusy?'刷新中…':'刷新';refresh.disabled=accountBusy||stopped;refresh.title='重新读取账户额度（有最短间隔限制）';refresh.onclick=refreshAccount;box.append(refresh);
+ const refresh=document.createElement('button');refresh.type='button';refresh.className='refresh';refresh.textContent=accountBusy?'刷新中…':'刷新';refresh.disabled=accountBusy||stopped||accountData?.status==='unsupported';refresh.title='重新读取账户额度（有最短间隔限制）';refresh.onclick=refreshAccount;box.append(refresh);
  const note=accountNote||model.note;if(note){const n=document.createElement('span');n.className='note'+(model.noteBad||accountNote?' bad':'');n.textContent=note;box.append(n)}
 }
 async function refreshAccount(){
  if(accountBusy)return;accountBusy=true;accountNote='';renderAccount();
+ const provider=currentProvider(),context=selKey();
  try{
-  const response=await fetch('/api/usage/refresh',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+  const response=await fetch('/api/usage/refresh',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({provider,group:sel.group,source:sel.source||undefined})});
   const result=await response.json();
+  if(provider!==currentProvider()||context!==selKey())return;
   if(response.status===401||result.error&&!result.status)throw new Error(result.error||'刷新失败');
   accountData=result;
- }catch(error){accountNote='刷新失败：'+error.message}
+ }catch(error){if(provider===currentProvider()&&context===selKey())accountNote='刷新失败：'+error.message}
  finally{accountBusy=false;accountSignature='';renderAccount()}
 }
 async function loadModels(refresh){
+ const provider=currentProvider(),context=draftKey(sel),seq=++modelsSeq;clearTimeout(modelsTimer);if(!providerReady())return;
  try{
-  const response=await fetch('/api/models'+(refresh?'?refresh=1':''),{cache:'no-store'});const data=await response.json();
+  const query=new URLSearchParams({provider});if(sel.group)query.set('group',sel.group);if(sel.source)query.set('source',sel.source);if(refresh)query.set('refresh','1');
+  const response=await fetch('/api/models?'+query,{cache:'no-store'});const data=await response.json();
+  if(seq!==modelsSeq||provider!==currentProvider()||context!==draftKey(sel))return;
   if(!response.ok)throw new Error(data.error||'HTTP '+response.status);
-  modelsData=data;
- }catch(error){modelsData={status:'error',models:[],error:error.message,default:{available:false}}}
+  modelsData={...data,provider};
+ }catch(error){if(seq!==modelsSeq||provider!==currentProvider()||context!==draftKey(sel))return;modelsData={provider,status:'error',models:[],error:error.message,default:{available:false}}}
  configSignature='';updateComposer();
- setTimeout(()=>loadModels(false),modelsData&&modelsData.status==='ok'?300000:30000);
+ modelsTimer=setTimeout(()=>loadModels(false),modelsData&&modelsData.status==='ok'?300000:30000);
 }
+
 function formatDateTime(t){if(!t)return '';const d=new Date(t);return Number.isNaN(d.getTime())?'':d.toLocaleString('zh-CN',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}
-const TURN_LABEL={pending:'待清理',running:'运行中',needs_review:'失败/中断，需复测后单独验收',unknown:'状态未知',cleaned:'已清理'};
+const TURN_LABEL={pending:'待清理',running:'运行中',cleaned:'已清理'};
 let tempOverview=null,tempError='',tempSeq=0,tempLoading=false,tempBusy=false,tempResult=null,tempResultId=0,pick=null;
 const settingsOpen=()=>!$('settings').hidden,pickOpen=()=>!$('pick-backdrop').hidden;
-// Read-only overview of every conversation's managed temp directories. Responses that were overtaken by a newer request are dropped.
+// Read-only overview of every conversation's task data. Responses that were overtaken by a newer request are dropped.
 async function loadTempOverview(force){
  if(tempLoading&&!force)return;const seq=++tempSeq;tempLoading=true;
  try{const response=await fetch('/api/temp/overview',{cache:'no-store'});const data=await response.json();if(!response.ok)throw new Error(data.error||'HTTP '+response.status);if(seq!==tempSeq)return;tempOverview=data;tempError=''}
@@ -1484,14 +1672,12 @@ async function loadTempOverview(force){
 }
 function renderTemp(){
  const t=tempOverview&&tempOverview.totals,summary=$('temp-summary');
- if(!t)summary.textContent=tempError?'无法读取临时文件概览：'+tempError:'正在读取临时文件概览…';
+ if(!t)summary.textContent=tempError?'无法读取任务数据概览：'+tempError:'正在读取任务数据概览…';
  else{
   const parts=['共 '+t.conversations+' 个对话','待清理 '+t.pending+' 轮'];
   if(t.running)parts.push(t.running+' 轮运行中（会跳过）');
-  if(t.needs_review)parts.push(t.needs_review+' 轮失败/中断未验收（需复测后单独验收，会跳过）');
-  if(t.unknown)parts.push(t.unknown+' 轮状态未知（会跳过）');
   if(t.cleaned)parts.push('已清理 '+t.cleaned+' 轮');
-  summary.textContent=parts.join('；')+'。历史对话和日志保留。'+(tempError?'（最近一次刷新失败：'+tempError+'）':'');
+  summary.textContent=parts.join('；')+'。清理后对应历史记录将移除，项目文件保留。'+(tempError?'（最近一次刷新失败：'+tempError+'）':'');
  }
  $('temp-all').disabled=tempBusy||!t||t.pending===0;$('temp-pick').disabled=tempBusy||!t;
  $('temp-all').setAttribute('aria-busy',String(tempBusy));$('temp-pick').setAttribute('aria-busy',String(tempBusy));
@@ -1513,13 +1699,13 @@ function renderTempResult(){
 }
 function showTempResult(kind,text,items){tempResult={id:++tempResultId,kind,text,items:items||[]}}
 function bulkResult(result){
- const c=result.cleaned||0,s=result.skipped||0,e=result.errors||0,keep=' 历史对话和日志保留。';
+ const c=result.cleaned||0,s=result.skipped||0,e=result.errors||0,keep=' 项目代码和测试脚本保留。';
  const items=(result.conversations||[]).flatMap(conv=>(conv.items||[]).filter(i=>i.outcome!=='cleaned').map(i=>({title:conv.title,round:i.round,outcome:i.outcome,reason:i.reason})));
- if(!c&&!s&&!e)showTempResult('ok','没有需要清理的临时文件。'+keep,items);
- else if(c&&!s&&!e)showTempResult('ok','已清理 '+c+' 轮临时文件。'+keep,items);
+ if(!c&&!s&&!e)showTempResult('ok','没有需要清理的任务数据。'+keep,items);
+ else if(c&&!s&&!e)showTempResult('ok','已清理 '+c+' 轮任务数据。'+keep,items);
  else if(c)showTempResult('warn','部分完成：已清理 '+c+' 轮，跳过 '+s+' 轮，失败 '+e+' 轮。'+keep,items);
  else if(e)showTempResult('error','未清理：失败 '+e+' 轮'+(s?'，跳过 '+s+' 轮':'')+'。'+keep,items);
- else showTempResult('warn','没有清理任何临时文件：跳过 '+s+' 轮。'+keep,items);
+ else showTempResult('warn','没有清理任何任务数据：跳过 '+s+' 轮。'+keep,items);
 }
 // One request at a time. The server re-enumerates for scope "all"; the browser never sends a path.
 async function runBulk(body){
@@ -1530,8 +1716,8 @@ async function runBulk(body){
   catch(error){throw Object.assign(new Error('请求未完成（'+(error.message||'网络错误')+'），清理结果未知，已重新读取概览'),{network:true})}
   let data={};try{data=await response.json()}catch{}
   if(!response.ok)throw new Error(data.error||'HTTP '+response.status);
-  bulkResult(data);outcome={ok:true};$('notice').textContent='';
- }catch(error){showTempResult('error',(error.network?'':'未清理：')+error.message+'。历史对话和日志保留。');outcome={ok:false,error:error.message}}
+  bulkResult(data);outcome={ok:true};$('notice').textContent='';clearTimeout(timer);setTimeout(refresh,0);
+ }catch(error){showTempResult('error',(error.network?'':'未清理：')+error.message+'。清理后对应历史记录将移除，项目文件保留。');outcome={ok:false,error:error.message}}
  finally{tempBusy=false;renderTemp();loadTempOverview(true)}
  return outcome;
 }
@@ -1539,9 +1725,7 @@ function convTags(conv){
  const c=conv.counts,parts=[];
  if(conv.running)parts.push('运行中，运行中的轮次会跳过');
  if(c.pending)parts.push(c.pending+' 轮待清理');
- if(c.needs_review)parts.push(c.needs_review+' 轮失败/中断，需复测后单独验收（会跳过）');
- if(c.unknown)parts.push(c.unknown+' 轮状态未知（会跳过）');
- if(!c.pending&&!c.needs_review&&!c.unknown&&!c.running&&!conv.running)parts.push(c.cleaned?'临时文件已全部清理（'+c.cleaned+' 轮）':'没有临时文件');
+ if(!c.pending&&!c.running&&!conv.running)parts.push('没有任务数据');
  return parts.join(' · ');
 }
 function renderTurns(row,conv){
@@ -1549,7 +1733,6 @@ function renderTurns(row,conv){
  wrap.replaceChildren();
  for(const turn of conv.turns){
   const line=document.createElement('div');line.className='pick-turn';const label=document.createElement('span');label.textContent='第 '+turn.round+' 轮：'+(TURN_LABEL[turn.state]||turn.state);line.append(label);
-  if(turn.state==='needs_review'){const button=document.createElement('button');button.type='button';button.textContent='复测完成，清理';button.disabled=tempBusy;button.title='单独验收：只删除这一轮的临时目录';button.onclick=()=>retestClean(conv,turn);line.append(button)}
   wrap.append(line);
  }
  row.querySelector('details').hidden=!conv.turns.length;row.querySelector('summary').textContent='查看轮次（'+conv.turns.length+'）';
@@ -1603,22 +1786,294 @@ async function confirmPick(){
  if(pick!==current)return; // closed or cancelled meanwhile: the result is already in the settings page
  if(outcome.ok)closePicker();else{$('pick-error').textContent='未清理：'+outcome.error;$('pick-error').hidden=false;updatePick()}
 }
-// Failed or interrupted turns are never cleaned in bulk; this is the explicit, single-turn acceptance after a re-test.
-async function retestClean(conv,turn){
- if(tempBusy)return;
- if(!confirm('确认「'+(conv.title||conv.agent)+'」第 '+turn.round+' 轮已复测，并验收清理它的临时目录？\n只会删除这一轮的临时目录。历史对话和执行日志不会被删除；仍有关联进程运行时会拒绝清理。'))return;
- tempBusy=true;renderTemp();
- try{
-  const response=await fetch('/api/temp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({group:conv.group,source:conv.source,agent:conv.agent,run:turn.run})});
-  const data=await response.json();if(!response.ok)throw new Error(data.error||'清理失败');
-  showTempResult('ok','已验收并清理「'+(conv.title||conv.agent)+'」第 '+turn.round+' 轮的临时目录。历史对话和日志保留。');
- }catch(error){showTempResult('error','未清理「'+(conv.title||conv.agent)+'」第 '+turn.round+' 轮：'+error.message);if(pick){$('pick-error').textContent='未清理第 '+turn.round+' 轮：'+error.message;$('pick-error').hidden=false}}
- finally{tempBusy=false;renderTemp();loadTempOverview(true)}
+const cliCatalogs={},cliNotes={},cliCatalogSeq={},cliDiagnostics={};let cliSelected=null;
+const cliMeta={claude:{name:'Claude Code',guide:'https://code.claude.com/docs/en/setup',install:'curl -fsSL https://claude.ai/install.sh | bash',installMethod:'macOS 推荐：原生安装（自动更新）',login:'claude auth login',description:'Anthropic 的本机编程助手'},kiro:{name:'Kiro CLI',guide:'https://kiro.dev/docs/getting-started/installation/',install:'brew install kiro-cli',installMethod:'macOS 推荐：通过 Homebrew 安装',login:'kiro-cli login',description:'连接 Kiro 账户与编程模型'}};
+function cliIcon(id){
+ const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.classList.add('cli-logo');svg.setAttribute('aria-hidden','true');
+ const use=document.createElementNS('http://www.w3.org/2000/svg','use');use.setAttribute('href','#cli-logo-'+id);svg.append(use);return svg;
 }
-function renderSettings(){if(settingsOpen()&&!tempBusy)loadTempOverview(false)}
+function cliStatus(item){return item.status==='invalid'?'路径失效':item.paused?'已暂停':item.connected?'运行中':'未连接'}
+function cliFeedback(provider,message){cliNotes[provider]=message;const node=$('cli-feedback-'+provider);if(node)node.textContent=message}
+function cliModelList(provider){
+ const root=$('cli-model-list-'+provider),note=$('cli-model-note-'+provider),catalog=cliCatalogs[provider];if(!root)return;
+ root.replaceChildren();
+ note.textContent=catalog?(catalog.error||catalog.message||(catalog.source==='pinned-default'?'当前为默认模型，点击获取模型列表读取完整目录。':'')):'点击“获取模型列表”读取可用模型。';
+ if(catalog?.config_source)note.textContent=catalog.config_source+' · '+note.textContent;
+ const models=catalog?.models||[];$('cli-model-count-'+provider).textContent=models.length?models.length+' 个模型':'';
+ if(provider==='claude')renderClaudeDefaults();
+ if(!models.length){const empty=document.createElement('p');empty.className='muted';empty.textContent='尚无模型列表';root.append(empty);return}
+ for(const model of models){
+  const row=document.createElement('li');row.className='cli-model-item';
+  const title=document.createElement('strong');title.textContent=model.name||model.id;
+  const id=document.createElement('code');id.textContent=model.id;
+  const effort=document.createElement('span');effort.textContent=model.effort?.levels?.length?'思考强度：'+model.effort.levels.join(' / '):model.effort?.known?'无思考强度设置':'思考强度信息待确认';
+  row.append(title,id,effort);root.append(row);
+ }
+}
+let claudeDefaultsDirty=false;
+function renderClaudeDefaults(){
+ const model=$('cli-default-model-claude'),effort=$('cli-default-effort-claude');if(!model)return;
+ const rows=cliCatalogs.claude?.models||[],saved=cliData?.providers.find(p=>p.id==='claude')?.defaults||{};
+ const desired=claudeDefaultsDirty?{model:model.value,effort:effort.value||null}:saved;
+ model.replaceChildren(new Option('请选择模型',''));for(const row of rows)model.append(new Option(row.name||row.id,row.id));model.value=desired.model||'';
+ const entry=rows.find(row=>row.id===model.value);effort.replaceChildren(new Option('不设置',''));
+ for(const level of entry?.effort?.levels||[])effort.append(new Option(effortLabel(level),level));effort.value=desired.effort||'';
+ model.disabled=cliBusy||!rows.length;effort.disabled=cliBusy||!entry?.effort?.supported;
+ $('cli-defaults-save-claude').disabled=cliBusy||!entry;
+}
+function makeCliConfig(item){
+ const id=item.id,meta=cliMeta[id],config=document.createElement('div');config.id='cli-config-'+id;config.className='cli-config';config.hidden=true;
+ const head=document.createElement('header');head.className='cli-config-heading';const title=document.createElement('h4');title.textContent=meta.name;head.append(cliIcon(id),title);
+ const status=document.createElement('p');status.id='cli-status-'+id;status.className='cli-status';status.setAttribute('role','status');head.append(status);
+ const controls=document.createElement('section');controls.className='settings-sec';
+ const actions=document.createElement('div');actions.className='cli-actions';
+ for(const [action,label] of [['connect','连接'],['disconnect','断开'],['default','设为默认'],['test','测试调用（消耗额度）']]){
+  const button=document.createElement('button');button.type='button';button.id='cli-'+action+'-'+id;button.className=action==='connect'?'primary':'secondary';button.textContent=label;button.onclick=()=>cliAction(action,id);actions.append(button);
+ }
+ const feedback=document.createElement('p');feedback.id='cli-feedback-'+id;feedback.className='cli-detail-feedback';feedback.setAttribute('role','status');feedback.setAttribute('aria-live','polite');
+ const diagnosticCopy=document.createElement('button');diagnosticCopy.type='button';diagnosticCopy.className='secondary';diagnosticCopy.id='cli-diagnostic-copy-'+id;diagnosticCopy.textContent='复制测试诊断';diagnosticCopy.hidden=true;diagnosticCopy.onclick=()=>copyWithFeedback(diagnosticCopy,()=>Object.values(cliDiagnostics[id]||{}).join('\n'),'复制测试诊断','测试诊断');
+ const label=document.createElement('label');label.htmlFor='cli-path-'+id;label.textContent='可执行文件路径';
+ const input=document.createElement('input');input.type='text';input.id=label.htmlFor;input.className='cli-path-input';input.autocomplete='off';input.spellcheck=false;input.placeholder='留空时，点击连接从 PATH 查找';input.oninput=()=>cliDirty.add(id);
+ const help=document.createElement('p');help.className='muted';help.textContent='成功连接后保存绝对路径。暂停会保留配置并阻止新任务，启动可恢复使用。';
+ controls.append(actions,feedback,diagnosticCopy,label,input,help);
+ const modelSection=document.createElement('section');modelSection.className='settings-sec';
+ const modelHead=document.createElement('div');modelHead.className='cli-model-head';const modelTitle=document.createElement('h4');modelTitle.textContent='模型列表';const count=document.createElement('span');count.id='cli-model-count-'+id;modelTitle.append(count);
+ const fetchModels=document.createElement('button');fetchModels.type='button';fetchModels.id='cli-catalog-'+id;fetchModels.className='secondary';fetchModels.textContent='获取模型列表';fetchModels.onclick=()=>cliAction('catalog',id);modelHead.append(modelTitle,fetchModels);
+ const note=document.createElement('p');note.id='cli-model-note-'+id;note.className='muted';
+ const list=document.createElement('ul');list.id='cli-model-list-'+id;list.className='cli-model-list';modelSection.append(modelHead,note,list);
+ const install=document.createElement('section');install.id='cli-install-'+id;install.className='settings-sec install-guide';
+ const installTitle=document.createElement('h4');installTitle.textContent='安装指南';
+ const installHead=document.createElement('div');installHead.className='cli-install-head';const link=document.createElement('a');link.href=meta.guide;link.target='_blank';link.rel='noopener noreferrer';link.textContent='官方指南 ↗';link.setAttribute('aria-label',meta.name+' 官方安装指南');installHead.append(installTitle,link);
+ const method=document.createElement('p');method.className='cli-install-method';method.textContent=meta.installMethod;
+ const installCommand=document.createElement('div');installCommand.className='cli-install-command';const installCode=document.createElement('code');installCode.textContent=meta.install;const copy=document.createElement('button');copy.type='button';copy.className='secondary';copy.textContent='复制';copy.setAttribute('aria-label','复制 '+meta.name+' 安装命令');copy.onclick=()=>copyWithFeedback(copy,()=>meta.install,'复制','安装命令');installCommand.append(installCode,copy);
+ const steps=document.createElement('ol');
+ const first=document.createElement('li');first.textContent=id==='kiro'?'打开 macOS 终端，运行上方命令。需先安装 Homebrew；其他安装方式见官方指南。':'打开 macOS 终端，运行上方命令完成安装。';
+ const second=document.createElement('li');second.textContent='点击“连接”。未登录时打开终端，由 CLI 引导浏览器授权（最多等待 3 分钟）。';
+ const third=document.createElement('li');third.textContent='连接成功后保存路径并自动读取模型列表，也可点击“获取模型列表”刷新。';steps.append(first,second,third);
+ const login=document.createElement('p');login.className='muted';login.append('手动登录：');const command=document.createElement('code');command.textContent=meta.login;login.append(command);install.append(installHead,method,installCommand,steps,login);
+ config.append(head,controls,modelSection);
+ if(id==='claude'){
+  const section=document.createElement('section');section.className='settings-sec';const heading=document.createElement('h4');heading.textContent='默认模型与思考强度';
+  const modelLabel=document.createElement('label');modelLabel.textContent='默认模型';modelLabel.htmlFor='cli-default-model-claude';
+  const model=document.createElement('select');model.id=modelLabel.htmlFor;model.className='cfg';
+  const effortLabelNode=document.createElement('label');effortLabelNode.textContent='默认思考强度';effortLabelNode.htmlFor='cli-default-effort-claude';
+  const effort=document.createElement('select');effort.id=effortLabelNode.htmlFor;effort.className='cfg';
+  model.onchange=()=>{claudeDefaultsDirty=true;effort.value='';renderClaudeDefaults()};effort.onchange=()=>{claudeDefaultsDirty=true};
+  const save=document.createElement('button');save.type='button';save.id='cli-defaults-save-claude';save.className='secondary';save.textContent='保存默认配置';save.onclick=()=>cliAction('defaults','claude');
+  const row=document.createElement('div');row.className='cli-defaults-row';
+  const modelField=document.createElement('div');modelField.className='cli-defaults-field';modelField.append(modelLabel,model);
+  const effortField=document.createElement('div');effortField.className='cli-defaults-field';effortField.append(effortLabelNode,effort);
+  row.append(modelField,effortField,save);section.append(heading,row);config.append(section);
+ }
+ config.append(install);$('cli-list').append(config);
+}
+function renderConnections(){
+ if(!cliData)return;
+ const items=[...(cliData.providers||[])].filter(p=>cliMeta[p.id]).sort((a,b)=>(a.id==='claude'?-1:1)-(b.id==='claude'?-1:1));
+ let connected=0;
+ for(const item of items){
+  const id=item.id;if(!$('cli-config-'+id))makeCliConfig(item);
+  let card=$('cli-card-'+id);
+  if(!card){
+   card=document.createElement('article');card.id='cli-card-'+id;card.className='cli-small-card';
+   const open=document.createElement('button');open.type='button';open.id='cli-card-open-'+id;open.className='cli-card-open';open.setAttribute('aria-label','配置 '+item.name);open.onclick=()=>openCliConfig(id);
+   const text=document.createElement('span');text.className='cli-card-label';const title=document.createElement('strong');title.textContent=item.name;const desc=document.createElement('span');desc.textContent=cliMeta[id].description;text.append(title,desc);open.append(cliIcon(id),text);
+   const foot=document.createElement('div');foot.className='cli-card-foot';const state=document.createElement('span');state.id='cli-card-state-'+id;
+   const toggle=document.createElement('button');toggle.type='button';toggle.id='cli-toggle-'+id;toggle.className='secondary';toggle.onclick=()=>cliAction(toggle.dataset.action,id);foot.append(state,toggle);card.append(open,foot);
+  }
+  const group=item.connected?'cli-connected-list':'cli-disconnected-list';if(card.parentElement?.id!==group)$(group).append(card);if(item.connected)connected++;
+  card.dataset.default=String(cliData.default_provider===id);card.dataset.paused=String(!!item.paused);
+  $('cli-card-state-'+id).textContent=cliStatus(item)+(cliData.default_provider===id?' · 默认':'');
+  const toggle=$('cli-toggle-'+id);toggle.hidden=!item.connected;toggle.dataset.action=item.paused?'start':'pause';toggle.textContent=item.paused?'启动':'暂停';toggle.disabled=cliBusy;
+  const input=$('cli-path-'+id);if(!cliDirty.has(id)&&document.activeElement!==input)input.value=item.path||'';input.disabled=cliBusy;
+  $('cli-status-'+id).textContent=cliStatus(item)+(cliData.default_provider===id?' · 默认':'')+(item.version?' · '+item.version:'')+(item.error?' · '+item.error:'');
+  const mainAction=item.connected?(item.paused?'start':'pause'):'connect';
+  $('cli-connect-'+id).textContent=cliBusy?'处理中…':mainAction==='connect'?'连接':mainAction==='pause'?'暂停':'启动';
+  $('cli-connect-'+id).onclick=()=>cliAction(mainAction,id);$('cli-connect-'+id).disabled=cliBusy;
+  $('cli-disconnect-'+id).disabled=cliBusy||!item.connected;$('cli-default-'+id).disabled=cliBusy||!item.available||cliData.default_provider===id;
+  $('cli-test-'+id).disabled=cliBusy||!item.available;$('cli-catalog-'+id).disabled=cliBusy||!item.available;
+  $('cli-feedback-'+id).textContent=cliNotes[id]||'';
+  $('cli-config-'+id).hidden=cliSelected!==id;cliModelList(id);
+ }
+ $('cli-connected-count').textContent=connected;$('cli-disconnected-count').textContent=items.length-connected;
+ $('cli-connected-empty').hidden=connected>0;
+ $('cli-overview').hidden=!!cliSelected;$('cli-detail').hidden=!cliSelected;
+ $('cli-overview-head').hidden=!!cliSelected;
+}
+async function openCliConfig(id){
+ if(!cliMeta[id])return;cliSelected=id;renderConnections();$('settings-content').scrollTop=0;$('cli-config-back').focus({preventScroll:true});
+ const item=cliData?.providers.find(p=>p.id===id);if(!item?.available||cliCatalogs[id])return;
+ const seq=cliCatalogSeq[id]||0;
+ try{
+  const response=await fetch('/api/models?'+new URLSearchParams({provider:id}),{cache:'no-store'});const data=await response.json();
+  if(seq!==(cliCatalogSeq[id]||0))return;
+  if(!response.ok)throw new Error(data.error||'无法读取模型列表');cliCatalogs[id]=data;cliModelList(id);
+ }catch(error){if(seq===(cliCatalogSeq[id]||0))cliFeedback(id,'无法读取模型列表：'+error.message)}
+}
+$('cli-config-back').onclick=()=>{const previous=cliSelected;cliSelected=null;renderConnections();$('cli-card-open-'+previous)?.focus({preventScroll:true})};
+async function loadConnections(){
+ if(cliLoading)return;cliLoading=true;
+ try{const response=await fetch('/api/connections',{cache:'no-store'});const data=await response.json();if(!response.ok)throw new Error(data.error||'读取失败');cliData=data;$('cli-overview-error').hidden=true;renderConnections()}
+ catch(error){$('cli-overview-error').textContent='无法读取 CLI 连接：'+error.message;$('cli-overview-error').hidden=false}
+ finally{cliLoading=false}
+}
+async function cliAction(action,provider){
+ if(cliBusy)return;cliBusy=true;cliFeedback(provider,action==='test'?'正在测试模型调用…':action==='connect'?'正在连接并读取模型目录；若打开登录终端或浏览器，请完成授权（最多等待 3 分钟）…':action==='catalog'?'正在获取模型列表…':'正在处理…');renderConnections();
+ cliCatalogSeq[provider]=(cliCatalogSeq[provider]||0)+1;
+ try{
+  const payload={action,provider};if(action==='connect')payload.path=$('cli-path-'+provider).value.trim();
+  if(action==='defaults'){payload.model=$('cli-default-model-claude').value;payload.effort=$('cli-default-effort-claude').value||null}
+  const response=await fetch('/api/connections',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});const data=await response.json();
+  if(action==='test'){cliDiagnostics[provider]=data.diagnostic||null;$('cli-diagnostic-copy-'+provider).hidden=!data.diagnostic}
+  if(data.catalog){cliCatalogs[provider]=data.catalog;cliModelList(provider)}
+  if(!response.ok||data.ok===false)throw new Error(data.message||data.error||'操作失败');
+  cliFeedback(provider,data.message||'已保存');
+  if(action==='defaults')claudeDefaultsDirty=false;
+  if(data.providers){cliData=data;if(action==='connect')cliDirty.delete(provider);providerItems=data.providers;draftProvider=data.default_provider||'';modelsData=null;configSignature='';pendingSel.clear()}
+  if(data.catalog&&currentProvider()===provider){++modelsSeq;clearTimeout(modelsTimer);if(provider==='kiro'){modelsData={...data.catalog,provider};configSignature=''}else{modelsData=null;loadModels(false)}}
+  if(action==='disconnect'){delete cliCatalogs[provider];cliModelList(provider)}
+  if(data.providers){if(!modelsData)loadModels(false);clearTimeout(timer);setTimeout(refresh,0)}
+ }catch(error){cliFeedback(provider,'操作失败：'+error.message)}
+ finally{cliBusy=false;renderConnections();updateComposer()}
+}
+let rolesData=null,rolesBusy=false,roleEditing=null,roleDirty=false;
+let roleModelSeq=0,roleModelsLoading=false,roleModels=[];
+const builtinRoles=new Set(['coder','tester']);
+function roleFeedback(message,error=false){
+ for(const id of ['roles-feedback','role-editor-feedback']){$(id).textContent=message;$(id).dataset.error=String(error)}
+}
+function renderRoleList(){
+ const list=$('roles-list');list.replaceChildren();
+ for(const role of rolesData?.roles||[]){
+  const card=document.createElement('article');card.className='role-card';card.dataset.enabled=String(role.enabled);
+  const open=document.createElement('button');open.type='button';open.className='role-card-main';open.id='role-open-'+role.id;open.disabled=rolesBusy;
+  const name=document.createElement('strong');name.textContent=role.name;
+  const summary=document.createElement('span');summary.textContent=role.description;
+  const meta=document.createElement('span');meta.textContent=(builtinRoles.has(role.id)?'内置':'自定义')+' · '+(role.provider==='claude'?'Claude Code':'Kiro CLI')+' · '+role.model+' · '+(role.enabled?'已启用':'已停用');
+  open.append(name,summary,meta);open.onclick=()=>openRole(role);
+  const toggle=document.createElement('button');toggle.type='button';toggle.className='secondary';toggle.id='role-toggle-'+role.id;toggle.textContent=role.enabled?'停用':'启用';toggle.disabled=rolesBusy;toggle.setAttribute('aria-label',toggle.textContent+' '+role.name);
+  toggle.onclick=()=>roleAction({action:'save',role:{...role,enabled:!role.enabled}},'toggle');card.append(open,toggle);list.append(card);
+ }
+ $('role-new').disabled=rolesBusy||!rolesData;$('roles-refresh').disabled=rolesBusy;
+ for(const element of $('role-form').querySelectorAll('input,select,textarea,button'))element.disabled=rolesBusy;
+ $('role-id').disabled=rolesBusy||roleEditing!==null;
+ roleModelControls();
+}
+async function loadRoles(){
+ if(rolesBusy)return;rolesBusy=true;renderRoleList();roleFeedback('正在读取角色…');
+ try{const response=await fetch('/api/roles'),data=await response.json();if(!response.ok)throw new Error(data.error||'读取失败');rolesData=data;roleFeedback(roleDirty?'列表已刷新，当前草稿保留。':'')}
+ catch(error){roleFeedback('读取失败：'+error.message,true)}
+ finally{rolesBusy=false;renderRoleList()}
+}
+function selectedRoleModel(){return roleModels.find(model=>model.id===$('role-model').value&&model.selectable!==false&&model.effort?.known===true)}
+function roleModelControls(){
+ const model=selectedRoleModel(),effort=model?.effort;
+ const validEffort=!!effort&&(effort.supported?(effort.levels.includes($('role-effort').value)||effort.source==='cli-options'&&$('role-effort').value===''):$('role-effort').value==='');
+ $('role-model').disabled=rolesBusy||roleModelsLoading||!roleModels.length;
+ $('role-effort').disabled=rolesBusy||roleModelsLoading||!effort?.supported;
+ $('role-save').disabled=rolesBusy||roleModelsLoading||!model||!validEffort;
+}
+function roleEffortOptions(desired){
+ const effort=selectedRoleModel()?.effort,select=$('role-effort');select.replaceChildren();
+ const add=(value,label,disabled=false)=>{const option=document.createElement('option');option.value=value;option.textContent=label;option.disabled=disabled;select.append(option)};
+ if(!effort?.supported){add('','不设置')}
+ else{
+  const levels=effort.levels||[];if(effort.source==='cli-options')add('','不设置');for(const level of levels)add(level,effortLabel(level));
+  const value=desired===undefined?(levels.includes(effort.default)?effort.default:levels[0]):desired;
+  if(value===null&&effort.source==='cli-options')select.value='';else if(levels.includes(value))select.value=value;else{add('','请选择支持的思考强度',true);select.value=''}
+ }
+ roleModelControls();
+}
+async function loadRoleModels(selection){
+ const seq=++roleModelSeq,provider=$('role-provider').value;roleModels=[];roleModelsLoading=true;
+ const select=$('role-model');select.replaceChildren(new Option('正在读取模型列表…',''));$('role-model-note').textContent='正在读取模型列表…';roleEffortOptions();
+ try{
+  const response=await fetch('/api/models?'+new URLSearchParams({provider}),{cache:'no-store'}),data=await response.json();
+  if(seq!==roleModelSeq||provider!==$('role-provider').value)return;
+  if(!response.ok||!data.models?.length)throw new Error(data.error||data.message||'没有可用模型，请在 CLI 连接中连接并读取模型列表。');
+  roleModels=data.models;select.replaceChildren();
+  for(const model of roleModels){const option=new Option(model.name&&model.name!==model.id?model.name+' · '+model.id:model.id,model.id);option.disabled=model.selectable===false||model.effort?.known!==true;select.append(option)}
+  const desired=selection?.model||data.default?.model||roleModels.find(model=>model.selectable!==false&&model.effort?.known===true)?.id;
+  const match=roleModels.find(model=>model.id===desired&&model.selectable!==false&&model.effort?.known===true);
+  if(match){select.value=match.id;$('role-model-note').textContent=data.message||'模型来自所选 CLI 的列表；实际可用性在执行时校验。'}
+  else{select.prepend(new Option('请选择可用模型',''));select.value='';$('role-model-note').textContent=selection?.model?'已保存的模型不在当前可选列表中，请重新选择。':'当前没有可选模型，请在 CLI 连接中读取模型列表。'}
+  roleEffortOptions(selection?.effort);
+ }catch(error){if(seq!==roleModelSeq)return;select.replaceChildren(new Option('无法读取模型列表',''));$('role-model-note').textContent=error.message;roleEffortOptions()}
+ finally{if(seq===roleModelSeq){roleModelsLoading=false;roleModelControls()}}
+}
+function openRole(role=null){
+ if(rolesBusy||roleDirty&&!confirm('放弃尚未保存的角色修改？'))return;
+ roleEditing=role?.id||null;roleDirty=false;
+ const value=role||{id:'',name:'',description:'',provider:'claude',model:'sonnet',effort:'medium',instructions:'',constraints:[],deliverables:[],enabled:true};
+ for(const key of ['id','name','description','provider','instructions'])$('role-'+key).value=value[key];
+ for(const key of ['constraints','deliverables'])$('role-'+key).value=value[key].join('\n');
+ $('role-enabled').checked=value.enabled;$('role-id').disabled=!!role;
+ $('role-editor-title').textContent=role?'编辑 '+role.name:'新增角色';$('role-delete').hidden=!role||builtinRoles.has(role.id);$('role-editor').hidden=false;roleFeedback('');loadRoleModels(value);$('role-name').focus();
+}
+function closeRole(){
+ $('role-editor').hidden=true;roleEditing=null;roleDirty=false;++roleModelSeq;roleModelsLoading=false;
+}
+function readRoleForm(){
+ const role={};for(const key of ['id','name','description','provider','model','instructions'])role[key]=$('role-'+key).value.trim();
+ for(const key of ['constraints','deliverables'])role[key]=$('role-'+key).value.split('\n').map(v=>v.trim()).filter(Boolean);
+ role.enabled=$('role-enabled').checked;role.effort=$('role-effort').value||null;return role;
+}
+async function roleAction(payload,mode){
+ if(rolesBusy||!rolesData)return;
+ if(mode==='save'&&$('role-save').disabled){roleFeedback('请先选择可用模型与思考强度。',true);return}
+ rolesBusy=true;renderRoleList();roleFeedback('正在保存…');
+ try{
+  const response=await fetch('/api/roles',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...payload,revision:rolesData.revision})});
+  const data=await response.json();if(!response.ok)throw new Error(data.error||'保存失败');rolesData=data;
+  if(mode!=='toggle')closeRole();else if(roleEditing===payload.role.id)$('role-enabled').checked=payload.role.enabled;
+  roleFeedback(mode==='delete'?'角色已删除':mode==='toggle'?(payload.role.enabled?'角色已启用':'角色已停用'):'角色已保存，下次委派时生效。');
+ }catch(error){roleFeedback('操作失败：'+error.message,true)}
+ finally{rolesBusy=false;renderRoleList()}
+}
+$('role-new').onclick=()=>openRole();$('roles-refresh').onclick=()=>loadRoles();
+$('role-form').oninput=()=>{roleDirty=true};$('role-form').onchange=()=>{roleDirty=true};
+$('role-provider').onchange=()=>{roleDirty=true;loadRoleModels()};
+$('role-model').onchange=()=>{roleDirty=true;roleEffortOptions();$('role-model-note').textContent=selectedRoleModel()?'模型来自所选 CLI 的列表；实际可用性在执行时校验。':'请选择可用模型。'};
+$('role-effort').onchange=()=>{roleDirty=true;roleModelControls()};
+$('role-cancel').onclick=()=>{if(!roleDirty||confirm('放弃尚未保存的角色修改？')){closeRole();roleFeedback('')}};
+$('role-form').onsubmit=event=>{event.preventDefault();roleAction({action:'save',role:readRoleForm(),create:roleEditing===null},'save')};
+$('role-delete').onclick=()=>{if(roleEditing&&!builtinRoles.has(roleEditing)&&confirm('删除此自定义角色？'))roleAction({action:'delete',id:roleEditing},'delete')};
+function renderSkillSetup(){
+ const prompt=`请将当前 Coder-Agents 项目配置为 Codex 的全局 Skill，名称为 coder-agents，在各个项目中都可使用。
+
+1. 根据当前对话的工作目录定位项目，阅读 docs/codex-integration.md、integrations/codex/SKILL.md.template 和 integrations/codex/openai.yaml.template。
+2. 自行查找当前 Codex 环境支持的用户全局技能目录，并检查已有的 coder-agents 安装，避免重复安装。更新时保留用户自定义内容，存在冲突时先说明。
+3. 按项目模板生成 SKILL.md 和 agents/openai.yaml，将 {{CODER_AGENTS_ROOT}} 替换为实际项目绝对路径，并正确处理路径中的特殊字符。保留模板中的运行规则和自动选用配置。
+4. 校验生成文件的格式、入口路径和占位符替换情况，报告安装结果与使用方式。此次仅安装 Skill，不执行编码任务、不调用模型、不修改全局 AGENTS.md 或安装系统服务。
+`;
+ if($('skill-prompt').value!==prompt)$('skill-prompt').value=prompt;
+}
+renderSkillSetup();
+$('skill-copy').onclick=()=>copyWithFeedback($('skill-copy'),()=>$('skill-prompt').value,'复制提示词','配置提示词');
+const settingsTabs=['cli','skill','roles','storage','service','help'];let settingsTab='cli';
+function selectSettingsTab(name,focus=false){
+ if(!settingsTabs.includes(name))return;
+ settingsTab=name;
+ for(const id of settingsTabs){const active=id===name,tab=$('settings-tab-'+id);tab.setAttribute('aria-selected',String(active));tab.tabIndex=active?0:-1;$('settings-page-'+id).hidden=!active}
+ $('settings-content').scrollTop=0;
+ if(focus)$('settings-tab-'+name).focus({preventScroll:true});
+ if(settingsOpen()){if(name==='cli')loadConnections();if(name==='roles'&&!rolesData)loadRoles();if(name==='storage')loadTempOverview(true)}
+}
+for(const name of settingsTabs){
+ const tab=$('settings-tab-'+name);tab.onclick=()=>selectSettingsTab(name);
+ tab.onkeydown=event=>{
+  const index=settingsTabs.indexOf(name),key=event.key;
+  const next=key==='Home'?0:key==='End'?settingsTabs.length-1:['ArrowDown','ArrowRight'].includes(key)?(index+1)%settingsTabs.length:['ArrowUp','ArrowLeft'].includes(key)?(index+settingsTabs.length-1)%settingsTabs.length:null;
+  if(next!==null){event.preventDefault();selectSettingsTab(settingsTabs[next],true)}
+ };
+}
+const settingsNarrow=window.matchMedia('(max-width:640px)');
+function orientSettingsNav(){$('settings-nav').setAttribute('aria-orientation',settingsNarrow.matches?'horizontal':'vertical')}
+orientSettingsNav();settingsNarrow.addEventListener('change',orientSettingsNav);
+function renderSettings(){if(settingsOpen()){if(settingsTab==='cli')renderConnections();if(settingsTab==='storage'&&!tempBusy)loadTempOverview(false)}}
 function renderRetention(viewer){
  const flag=viewer&&viewer.auto_cleanup_enabled,node=$('retention-note');
- node.textContent=flag===false?'历史对话和执行日志保留；自动删除已关闭':flag===true?'自动删除已开启：每天及服务启动时清理超过 '+(viewer.retention_days||7)+' 天未更新的对话与日志（跳过运行中任务，删除后无法恢复，项目文件保留）':'自动删除状态未知（未读到明确设置），本面板不会修改它';
+ node.textContent=flag===false?'自动清理已关闭；可使用上方按钮手动清理任务数据':flag===true?'自动删除已开启：每天及服务启动时清理超过 '+(viewer.retention_days||7)+' 天未更新的对话与日志（跳过运行中任务，删除后无法恢复，项目文件保留）':'自动删除状态未知（未读到明确设置），本面板不会修改它';
 }
 // Settings cover the whole app. The sidebar keeps its open/closed state underneath; it is only hidden (CSS) and inert.
 function setSettings(open){
@@ -1626,7 +2081,7 @@ function setSettings(open){
  if(!open)closePicker();
  panel.hidden=!open;$('app').classList.toggle('settings-on',open);$('settings-open').setAttribute('aria-expanded',String(open));
  for(const node of [$('sidebar'),$('overlay'),document.querySelector('main')]){if(open)node.setAttribute('inert','');else node.removeAttribute('inert')}
- if(open){tempResult=null;renderTemp();loadTempOverview(true);$('settings-close').focus({preventScroll:true})}
+ if(open){tempResult=null;renderTemp();selectSettingsTab(settingsTab);$('settings-tab-'+settingsTab).focus({preventScroll:true})}
  else{pick=null;($('sidebar').classList.contains('closed')?$('history'):$('settings-open')).focus({preventScroll:true})}
 }
 $('temp-all').onclick=()=>runBulk({scope:'all'});$('temp-pick').onclick=openPicker;
@@ -1642,6 +2097,7 @@ $('pick').addEventListener('keydown',event=>{
  if(event.shiftKey&&(document.activeElement===first||document.activeElement===$('pick'))){event.preventDefault();last.focus()}
  else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus()}
 });
+$('provider-select').onchange=event=>chooseProvider(event.target.value);
 $('model-select').onchange=event=>chooseModel(event.target.value);$('effort-select').onchange=event=>chooseEffort(event.target.value);
 $('history').onclick=()=>sidebar($('sidebar').classList.contains('closed'));$('overlay').onclick=()=>sidebar(false);
 $('settings-open').onclick=()=>setSettings($('settings').hidden);$('settings-close').onclick=()=>setSettings(false);
@@ -1658,13 +2114,16 @@ $('review').addEventListener('keydown',event=>{
  if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus()}
  else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus()}
 });
+$('diagnostics-copy').onclick=()=>copyWithFeedback($('diagnostics-copy'),()=>$('diagnostics').textContent,'复制诊断','诊断');
+$('task-stop').onclick=async()=>{const turn=[...(lastData?.turns||[])].reverse().find(t=>['checking','running'].includes(t.state.status));if(!turn)return;if(!confirm('停止当前任务？已修改的文件会保留，请由主 Agent 检查后再继续。'))return;const button=$('task-stop');button.disabled=true;try{const response=await fetch('/api/tasks/stop',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({group:sel.group,source:sel.source,run:turn.state.id})});const result=await response.json();if(!response.ok)throw new Error(result.error||'停止失败');$('notice').textContent='停止请求已处理，请检查已有改动后再继续';clearTimeout(timer);refresh()}catch(error){$('notice').textContent=error.message}finally{button.disabled=false}};
 $('debug-toggle').onclick=()=>$('debug').hidden=false;$('debug-close').onclick=()=>$('debug').hidden=true;
 $('scroll').addEventListener('scroll',()=>{const s=$('scroll');away=s.scrollHeight-s.scrollTop-s.clientHeight>100;if(!away)$('latest').hidden=true},{passive:true});
 $('latest').onclick=()=>{away=false;$('scroll').scrollTo({top:$('scroll').scrollHeight,behavior:'smooth'});$('latest').hidden=true};
 $('composer-form').onsubmit=sendMessage;$('prompt').addEventListener('input',resizeInput);$('prompt').addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.shiftKey&&!event.isComposing){event.preventDefault();$('composer-form').requestSubmit()}});
-$('stop-viewer').onclick=async()=>{stopped=true;clearTimeout(timer);refreshController?.abort();updateComposer();try{const response=await fetch('/api/stop',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});if(!response.ok)throw new Error();stopped=true;clearTimeout(timer);$('connection').textContent='Python 面板服务已结束 · Kiro 任务不受影响';$('stop-viewer').disabled=true;updateComposer()}catch{stopped=false;updateComposer();schedule();$('notice').textContent='未能关闭服务，请稍后重试'}};
+$('stop-viewer').onclick=async()=>{stopped=true;clearTimeout(timer);refreshController?.abort();updateComposer();try{const response=await fetch('/api/stop',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});if(!response.ok)throw new Error();stopped=true;clearTimeout(timer);$('connection').textContent='Python 面板服务已结束 · CLI 任务不受影响';$('stop-viewer').disabled=true;updateComposer()}catch{stopped=false;updateComposer();schedule();$('notice').textContent='未能关闭服务，请稍后重试'}};
 document.addEventListener('visibilitychange',()=>{clearTimeout(timer);if(!document.hidden&&!stopped)refresh()});
-sidebar(innerWidth>640);loadModels(false);refresh();
+// Wait for /api to supply the configured provider before querying model services.
+sidebar(innerWidth>640);refresh();
 
 </script>
 </body>
